@@ -31,8 +31,8 @@ const PortfolioBuilder: React.FC = () => {
       setFiles(allFiles);
 
       // Get selected files
-      const selectedFiles = allFiles.filter((file: UploadedFile) => 
-        state.selectedDocs.includes(file.id)
+      const selectedFiles = allFiles.filter((file: UploadedFile) =>
+        (state.selectedDocs || []).includes(file.id),
       );
 
       // Build portfolio structure
