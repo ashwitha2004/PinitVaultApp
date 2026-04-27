@@ -6,10 +6,12 @@ import PortfolioFilters from '../components/portfolio/PortfolioFilters';
 import type { PortfolioType } from '../types';
 import { loadPortfolios, type Portfolio } from '../utils/portfolioBuilder';
 
+
 const Portfolio: React.FC = () => {
   const navigate = useNavigate();
   const [portfolios, setPortfolios] = useState<PortfolioType[]>([]);
   const [activeFilter, setActiveFilter] = useState('All');
+  
 
   // Load portfolios from localStorage on mount
   useEffect(() => {
@@ -54,19 +56,14 @@ const Portfolio: React.FC = () => {
     }
   };
 
-  const handleView = (portfolio: PortfolioType) => {
-    console.log('View portfolio:', portfolio.name);
-    // Navigate to portfolio details (for later implementation)
-  };
-
+  
   const handleTrack = (portfolio: PortfolioType) => {
     console.log('Track portfolio:', portfolio.name);
     // Implement tracking functionality
   };
 
   const handleShare = (portfolio: PortfolioType) => {
-    console.log('Share portfolio:', portfolio.name);
-    // Implement sharing functionality
+    navigate(`/portfolio/share/${portfolio.id}`);
   };
 
   return (
@@ -95,7 +92,6 @@ const Portfolio: React.FC = () => {
               <PortfolioCard
                 key={portfolio.id}
                 portfolio={portfolio}
-                onView={() => handleView(portfolio)}
                 onTrack={() => handleTrack(portfolio)}
                 onShare={() => handleShare(portfolio)}
               />
@@ -132,7 +128,8 @@ const Portfolio: React.FC = () => {
       >
         <Plus className="w-6 h-6" />
       </button>
-    </div>
+
+          </div>
   );
 };
 

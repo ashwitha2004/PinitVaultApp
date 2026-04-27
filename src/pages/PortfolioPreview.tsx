@@ -1,594 +1,447 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { ArrowLeft, FileText, Image, Video, User, BookOpen, Award, Code, Link, Edit, Download, Share2, Copy, Eye, EyeOff, Save, Plus, Briefcase, GraduationCap, Shield } from 'lucide-react';
-import QRCode from 'qrcode';
+import { useState, useEffect } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
+import { ArrowLeft, FileText, Users, BarChart3, Eye, Download, Edit, Trash2, Share2, Plus, Briefcase, User, Mail, Phone, Globe } from 'lucide-react';
+import Header from '../components/Header';
+import type { Portfolio, ProfileData } from '../types/Portfolio';
+import { getProfileData } from '../types/Portfolio';
 
 interface VaultDocument {
   id: string;
   name: string;
-  type: 'pdf' | 'image' | 'video';
-  size: string;
-  uploadDate: string;
-  category: 'academic' | 'professional' | 'masters' | 'certifications' | 'personal';
-  verified?: boolean;
+  type: string;
+  size: number;
+  data: string;
+  uploadedAt: string;
 }
 
-interface PortfolioDraft {
-  id: string;
-  name: string;
-  type: 'personal' | 'academic' | 'professional' | 'masters';
-  template: string;
-  documents: VaultDocument[];
-  createdAt: string;
-  status: 'draft' | 'published';
-}
-
-const PortfolioPreview: React.FC = () => {
+const PortfolioPreview = () => {
   const navigate = useNavigate();
-  const location = useLocation();
-  const [portfolio, setPortfolio] = useState<PortfolioDraft | null>(null);
-  const [portfolioName, setPortfolioName] = useState<string>('My Portfolio');
-  const [showQRCode, setShowQRCode] = useState<boolean>(false);
-  const [shareLink, setShareLink] = useState<string>('');
-  const [qrCodeUrl, setQrCodeUrl] = useState<string>('');
-  const [error, setError] = useState<string>('');
+  const { portfolioId } = useParams<{ portfolioId: string }>();
+  const [portfolio, setPortfolio] = useState<Portfolio | null>(null);
+  const [vaultDocuments, setVaultDocuments] = useState<VaultDocument[]>([]);
 
   useEffect(() => {
-    try {
-      const state = location.state as { portfolio?: PortfolioDraft };
-      if (state?.portfolio) {
-        setPortfolio(state.portfolio);
-        setPortfolioName('My Portfolio');
-      } else {
-        // If no data, go back to portfolio builder
-        navigate('/add-documents-from-vault');
-      }
-    } catch (err) {
-      setError('Failed to load portfolio data');
-      console.error('PortfolioPreview error:', err);
-    }
-  }, [location.state, navigate]);
-
-  useEffect(() => {
-    if (shareLink) {
-      QRCode.toDataURL(shareLink, {
-        width: 128,
-        margin: 1,
-        color: {
-          dark: '#000000',
-          light: '#FFFFFF'
-        }
-      })
-        .then(url => {
-          setQrCodeUrl(url);
-        })
-        .catch(err => {
-          console.error('Error generating QR code:', err);
-        });
-    }
-  }, [shareLink]);
-
-  // Auto-map documents to sections based on portfolio type
-  const getPortfolioSections = () => {
-    if (!portfolio) return {};
-
-    const docs = portfolio.documents || [];
+    // Fetch portfolio by ID from localStorage
+    const portfolios = JSON.parse(localStorage.getItem('portfolios') || '[]');
+    const foundPortfolio = portfolios.find((p: Portfolio) => p.id === portfolioId);
     
-    switch (portfolio.type) {
-      case 'professional':
-        return {
-          'Profile Summary': docs.filter(doc => 
-            doc.name.toLowerCase().includes('resume') || 
-            doc.name.toLowerCase().includes('profile')
-          ),
-          'Resume': docs.filter(doc => 
-            doc.name.toLowerCase().includes('resume')
-          ),
-          'Education': docs.filter(doc => 
-            doc.category === 'academic' && 
-            (doc.name.toLowerCase().includes('degree') || 
-             doc.name.toLowerCase().includes('certificate') ||
-             doc.name.toLowerCase().includes('transcript'))
-          ),
-          'Key Projects': docs.filter(doc => 
-            doc.name.toLowerCase().includes('project')
-          ),
-          'Internships': docs.filter(doc => 
-            doc.name.toLowerCase().includes('internship')
-          ),
-          'Certifications': docs.filter(doc => 
-            doc.category === 'certifications'
-          ),
-          'Achievements': docs.filter(doc => 
-            doc.name.toLowerCase().includes('achievement') ||
-            doc.name.toLowerCase().includes('award')
-          )
-        };
-        
-      case 'academic':
-        return {
-          'Student Profile': docs.filter(doc => 
-            doc.name.toLowerCase().includes('profile') || 
-            doc.name.toLowerCase().includes('student')
-          ),
-          'Education History': docs.filter(doc => 
-            doc.category === 'academic' && 
-            doc.name.toLowerCase().includes('degree')
-          ),
-          'Marksheets': docs.filter(doc => 
-            doc.category === 'academic' && 
-            doc.name.toLowerCase().includes('marksheet')
-          ),
-          'Degree Certificates': docs.filter(doc => 
-            doc.category === 'academic' && 
-            doc.name.toLowerCase().includes('certificate')
-          ),
-          'Entrance Exams': docs.filter(doc => 
-            doc.name.toLowerCase().includes('gre') ||
-            doc.name.toLowerCase().includes('ielts') ||
-            doc.name.toLowerCase().includes('toefl') ||
-            doc.name.toLowerCase().includes('sat')
-          ),
-          'Certifications': docs.filter(doc => 
-            doc.category === 'certifications'
-          )
-        };
-        
-      case 'masters':
-        return {
-          'Student Profile': docs.filter(doc => 
-            doc.name.toLowerCase().includes('profile') || 
-            doc.name.toLowerCase().includes('student')
-          ),
-          'Education': docs.filter(doc => 
-            doc.category === 'academic'
-          ),
-          'SOP': docs.filter(doc => 
-            doc.name.toLowerCase().includes('sop') ||
-            doc.name.toLowerCase().includes('statement')
-          ),
-          'LOR': docs.filter(doc => 
-            doc.name.toLowerCase().includes('lor') ||
-            doc.name.toLowerCase().includes('recommendation')
-          ),
-          'Entrance Exams': docs.filter(doc => 
-            doc.name.toLowerCase().includes('gre') ||
-            doc.name.toLowerCase().includes('ielts') ||
-            doc.name.toLowerCase().includes('toefl')
-          ),
-          'Research / Experience': docs.filter(doc => 
-            doc.name.toLowerCase().includes('research') ||
-            doc.name.toLowerCase().includes('experience')
-          ),
-          'Financial Documents': docs.filter(doc => 
-            doc.name.toLowerCase().includes('financial')
-          )
-        };
-        
-      case 'personal':
-        return {
-          'Identity Documents': docs.filter(doc => 
-            doc.name.toLowerCase().includes('aadhaar') ||
-            doc.name.toLowerCase().includes('pan')
-          ),
-          'Passport': docs.filter(doc => 
-            doc.name.toLowerCase().includes('passport')
-          ),
-          'Licenses': docs.filter(doc => 
-            doc.name.toLowerCase().includes('license')
-          ),
-          'Photos': docs.filter(doc => 
-            doc.type === 'image'
-          ),
-          'Supporting Personal Records': docs.filter(doc => 
-            !doc.name.toLowerCase().includes('passport') &&
-            !doc.name.toLowerCase().includes('license') &&
-            !doc.name.toLowerCase().includes('aadhaar') &&
-            !doc.name.toLowerCase().includes('pan')
-          )
-        };
-        
-      default:
-        return {};
+    if (foundPortfolio) {
+      setPortfolio(foundPortfolio);
+    } else {
+      // Portfolio not found, redirect to portfolios list
+      navigate('/portfolios');
+      return;
     }
+
+    // Load vault documents for document details
+    const documents = JSON.parse(localStorage.getItem('vaultFiles') || '[]');
+    setVaultDocuments(documents);
+  }, [portfolioId, navigate]);
+
+  // Helper function to find document by ID
+  const getDocumentDetails = (docId: string): VaultDocument | undefined => {
+    return vaultDocuments.find(doc => doc.id === docId);
   };
 
-  const getFileIcon = (type: string) => {
-    switch (type) {
-      case 'image':
-        return Image;
-      case 'video':
-        return Video;
-      default:
-        return FileText;
-    }
+  // Helper function to get document icon
+  const getDocumentIcon = (type: string) => {
+    if (type.includes('pdf')) return '📄';
+    if (type.includes('image')) return '🖼️';
+    if (type.includes('video')) return '🎥';
+    return '📄';
   };
 
-  const getFileColor = (type: string) => {
-    switch (type) {
-      case 'image':
-        return 'bg-green-500';
-      case 'video':
-        return 'bg-purple-500';
-      default:
-        return 'bg-red-500';
-    }
+  // Helper function to format file size
+  const formatFileSize = (bytes: number) => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
-  const getSectionIcon = (sectionName: string) => {
-    const name = sectionName.toLowerCase();
-    if (name.includes('profile') || name.includes('summary')) return User;
-    if (name.includes('resume')) return FileText;
-    if (name.includes('education') || name.includes('academic')) return BookOpen;
-    if (name.includes('project')) return Code;
-    if (name.includes('certification')) return Award;
-    if (name.includes('internship')) return Briefcase;
-    if (name.includes('achievement')) return GraduationCap;
-    if (name.includes('identity') || name.includes('passport') || name.includes('license')) return Shield;
-    if (name.includes('sop') || name.includes('statement')) return FileText;
-    if (name.includes('lor') || name.includes('recommendation')) return FileText;
-    if (name.includes('exam')) return FileText;
-    if (name.includes('research') || name.includes('experience')) return Briefcase;
-    if (name.includes('financial')) return FileText;
-    if (name.includes('photo')) return Image;
-    return FileText;
+  // Helper function to format date
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString();
   };
 
-  const getSectionColor = (sectionName: string) => {
-    const name = sectionName.toLowerCase();
-    if (name.includes('profile') || name.includes('summary')) return 'bg-blue-500';
-    if (name.includes('resume')) return 'bg-blue-500';
-    if (name.includes('education') || name.includes('academic')) return 'bg-purple-500';
-    if (name.includes('project')) return 'bg-orange-500';
-    if (name.includes('certification')) return 'bg-green-500';
-    if (name.includes('internship')) return 'bg-blue-500';
-    if (name.includes('achievement')) return 'bg-yellow-500';
-    if (name.includes('identity') || name.includes('passport') || name.includes('license')) return 'bg-red-500';
-    if (name.includes('sop') || name.includes('statement')) return 'bg-indigo-500';
-    if (name.includes('lor') || name.includes('recommendation')) return 'bg-pink-500';
-    if (name.includes('exam')) return 'bg-teal-500';
-    if (name.includes('research') || name.includes('experience')) return 'bg-orange-500';
-    if (name.includes('financial')) return 'bg-green-500';
-    if (name.includes('photo')) return 'bg-green-500';
-    return 'bg-gray-500';
+  // Handle edit portfolio
+  const handleEditPortfolio = () => {
+    if (!portfolio) return;
+    navigate(`/portfolio/${portfolio.id}`);
   };
 
-  const handleSaveDraft = () => {
-    if (portfolio) {
-      try {
-        // Save portfolio draft to localStorage
-        const existing = JSON.parse(localStorage.getItem("portfolioDrafts") || "[]");
-        localStorage.setItem(
-          "portfolioDrafts",
-          JSON.stringify([{ ...portfolio, status: 'draft' }, ...existing])
-        );
-        alert('Portfolio draft saved successfully!');
-      } catch (error) {
-        console.error('Error saving draft:', error);
-        alert('Error saving draft. Please try again.');
-      }
-    }
-  };
+  // Handle share portfolio
+  const handleSharePortfolio = () => {
+    if (!portfolio) return;
 
-  const handleEditDocuments = () => {
-    if (portfolio) {
-      navigate('/add-documents-from-vault', { 
-        state: { 
-          selectedType: portfolio.type, 
-          selectedTemplate: portfolio.template 
-        } 
-      });
-    }
-  };
-
-  const handleChangeTemplate = () => {
-    if (portfolio) {
-      navigate('/create-portfolio', { 
-        state: { 
-          selectedType: portfolio.type 
-        } 
-      });
-    }
-  };
-
-  const handleShare = () => {
-    if (portfolio) {
-      const link = `https://pinit.app/portfolio/${portfolio.id}`;
-      setShareLink(link);
-      setShowQRCode(true);
-    }
-  };
-
-  const handleDownload = () => {
-    if (portfolio) {
-      alert(`Downloading "${portfolio.name}" portfolio as PDF... This will include all selected documents and template layout.`);
-    }
-  };
-
-  const handleView = () => {
-    if (portfolio) {
-      alert(`Opening "${portfolio.name}" portfolio in new tab with live preview...`);
-      // In a real implementation, this would open the portfolio in a new tab
-      // window.open(`/portfolio/${portfolio.id}`, '_blank');
-    }
-  };
-
-  const handleBack = () => {
-    navigate('/add-documents-from-vault');
-  };
-
-  const handleCopyLink = () => {
+    const shareToken = btoa(`${portfolio.id}:${Date.now()}`);
+    const shareLink = `${window.location.origin}/portfolio/${portfolio.id}?token=${shareToken}`;
+    
     navigator.clipboard.writeText(shareLink);
     alert('Share link copied to clipboard!');
   };
 
-  const sections = getPortfolioSections();
+  // Handle download portfolio
+  const handleDownloadPortfolio = () => {
+    if (!portfolio) return;
 
-  if (error) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <div className="w-6 h-6 bg-red-500 rounded-full"></div>
-          </div>
-          <p className="text-red-600 mb-4">{error}</p>
-          <button
-            onClick={() => navigate('/add-documents-from-vault')}
-            className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
-          >
-            Go Back
-          </button>
-        </div>
-      </div>
-    );
-  }
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      printWindow.document.write(`
+        <html>
+          <head>
+            <title>${portfolio.name}</title>
+            <style>
+              body { font-family: Arial, sans-serif; margin: 20px; }
+              .section { margin-bottom: 30px; page-break-inside: avoid; }
+              .section h2 { color: #333; border-bottom: 2px solid #333; padding-bottom: 10px; }
+              .document-item { margin-bottom: 10px; padding: 10px; border: 1px solid #ddd; }
+            </style>
+          </head>
+          <body>
+            <h1>${portfolio.name}</h1>
+            <p><strong>Type:</strong> ${portfolio.type}</p>
+            <p><strong>Created:</strong> ${formatDate(portfolio.createdAt)}</p>
+            ${portfolio.sections.map(section => `
+              <div class="section">
+                <h2>${section.title}</h2>
+                ${section.documents.map(docId => {
+                  const doc = getDocumentDetails(docId);
+                  return doc ? `<div class="document-item">
+                    <strong>${doc.name}</strong><br>
+                    <small>${doc.type} • ${formatFileSize(doc.size)} • ${formatDate(doc.uploadedAt)}</small>
+                  </div>` : '';
+                }).join('')}
+              </div>
+            `).join('')}
+          </body>
+        </html>
+      `);
+      printWindow.document.close();
+      printWindow.print();
+    }
+  };
 
+  // Handle delete portfolio
+  const handleDeletePortfolio = () => {
+    if (!portfolio) return;
+
+    if (confirm('Are you sure you want to delete this portfolio? This action cannot be undone.')) {
+      const portfolios = JSON.parse(localStorage.getItem('portfolios') || '[]');
+      const updatedPortfolios = portfolios.filter((p: Portfolio) => p.id !== portfolio.id);
+      localStorage.setItem('portfolios', JSON.stringify(updatedPortfolios));
+
+      // Log access
+      const accessLog = JSON.parse(localStorage.getItem('portfolioAccessLogs') || '[]');
+      const newLog = {
+        id: Date.now().toString(),
+        portfolioId: portfolio.id,
+        timestamp: new Date().toISOString(),
+        device: navigator.userAgent.includes('Mobile') ? 'Mobile' : 'Desktop',
+        ipAddress: 'Unknown',
+        action: 'Deleted'
+      };
+      localStorage.setItem('portfolioAccessLogs', JSON.stringify([newLog, ...accessLog]));
+
+      alert('Portfolio deleted successfully!');
+      navigate('/portfolios');
+    }
+  };
+
+  // Helper function to sort sections (with documents first)
+  const getSortedSections = (sections: Portfolio['sections']) => {
+    return [...sections].sort((a, b) => {
+      // Sections with documents come first
+      const aHasDocs = a.documents.length > 0;
+      const bHasDocs = b.documents.length > 0;
+      
+      if (aHasDocs && !bHasDocs) return -1;
+      if (!aHasDocs && bHasDocs) return 1;
+      return 0;
+    });
+  };
+
+  // Loading state
   if (!portfolio) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="w-12 h-12 border-4 border-gray-300 border-t-transparent rounded-full animate-spin"></div>
-          <p className="text-gray-600">Loading portfolio...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-200"></div>
+          <p className="mt-4 text-gray-600">Loading portfolio...</p>
         </div>
       </div>
     );
   }
 
+  // Safety check for sections
+  if (!portfolio.sections || !Array.isArray(portfolio.sections)) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <FileText className="w-8 h-8 text-gray-400" />
+          </div>
+          <h2 className="text-lg font-semibold text-gray-900 mb-2">Portfolio Structure Error</h2>
+          <p className="text-gray-600">This portfolio has an invalid structure.</p>
+          <button
+            onClick={() => navigate('/portfolios')}
+            className="mt-4 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+          >
+            Back to Portfolios
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  const sortedSections = getSortedSections(portfolio.sections);
+  const profileData = getProfileData();
+
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white border-b border-gray-200">
-        <div className="max-w-md mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
+      <Header showWelcome={false} />
+      
+      <div className="max-w-md mx-auto px-4 py-6">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-3">
             <button
-              onClick={handleBack}
-              className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
+              onClick={() => navigate('/portfolios')}
+              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
             >
               <ArrowLeft className="w-5 h-5 text-gray-700" />
             </button>
-            <div className="flex items-center gap-2">
-              <h1 className="text-lg font-semibold text-gray-900">{portfolioName}</h1>
-              <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                portfolio.status === 'published' 
-                  ? 'bg-green-100 text-green-700' 
-                  : 'bg-yellow-100 text-yellow-700'
-              }`}>
-                {portfolio.status === 'published' ? 'Secured' : 'Draft'}
-              </span>
+            <h1 className="text-xl font-bold text-gray-900">Portfolio Preview</h1>
+            <div className="text-sm text-gray-600">
+              {sortedSections.length} sections
             </div>
-            <div className="w-9"></div>
+          </div>
+          
+          <div className="flex gap-2">
+            <button
+              onClick={handleSharePortfolio}
+              className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors flex items-center gap-2"
+            >
+              <Share2 className="w-4 h-4" />
+              Share
+            </button>
+            <button
+              onClick={handleDownloadPortfolio}
+              className="px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors flex items-center gap-2"
+            >
+              <Download className="w-4 h-4" />
+              Download
+            </button>
+            <button
+              onClick={handleDeletePortfolio}
+              className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors flex items-center gap-2"
+            >
+              <Trash2 className="w-4 h-4" />
+              Delete
+            </button>
           </div>
         </div>
-      </div>
 
-      {/* Content */}
-      <div className="max-w-md mx-auto px-4 py-6">
-        {/* Action Buttons */}
-        <div className="grid grid-cols-3 gap-2 mb-6">
-          <button
-            onClick={handleSaveDraft}
-            className="flex flex-col items-center gap-1 p-3 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors"
-          >
-            <Save className="w-4 h-4 text-gray-600" />
-            <span className="text-xs text-gray-600">Save Draft</span>
-          </button>
-          <button
-            onClick={handleEditDocuments}
-            className="flex flex-col items-center gap-1 p-3 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors"
-          >
-            <Edit className="w-4 h-4 text-gray-600" />
-            <span className="text-xs text-gray-600">Edit Docs</span>
-          </button>
-          <button
-            onClick={handleChangeTemplate}
-            className="flex flex-col items-center gap-1 p-3 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors"
-          >
-            <Eye className="w-4 h-4 text-gray-600" />
-            <span className="text-xs text-gray-600">Template</span>
-          </button>
-          <button
-            onClick={handleShare}
-            className="flex flex-col items-center gap-1 p-3 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors"
-          >
-            <Share2 className="w-4 h-4 text-gray-600" />
-            <span className="text-xs text-gray-600">Share</span>
-          </button>
-          <button
-            onClick={handleDownload}
-            className="flex flex-col items-center gap-1 p-3 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors"
-          >
-            <Download className="w-4 h-4 text-gray-600" />
-            <span className="text-xs text-gray-600">Download</span>
-          </button>
-          <button
-            onClick={handleView}
-            className="flex flex-col items-center gap-1 p-3 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors"
-          >
-            <Eye className="w-4 h-4 text-gray-600" />
-            <span className="text-xs text-gray-600">View</span>
-          </button>
-        </div>
-
-        {/* Portfolio Preview */}
-        <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden mb-6">
-          {/* Profile Section */}
+        {/* Portfolio Info */}
+        <div className="bg-white rounded-2xl shadow-sm mb-6">
           <div className="p-6 border-b border-gray-200">
-            <div className="flex items-center gap-4">
-              <div className="w-20 h-20 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center">
-                <User className="w-10 h-10 text-white" />
+            <div className="flex justify-between items-start mb-4">
+              <div>
+                <h2 className="text-lg font-semibold text-gray-900 mb-2">{portfolio.name}</h2>
+                <p className="text-sm text-gray-600 mb-1">{portfolio.type} Portfolio</p>
+                <p className="text-xs text-gray-500">
+                  Created: {formatDate(portfolio.createdAt)}
+                </p>
               </div>
-              <div className="flex-1">
-                <h3 className="text-2xl font-bold text-gray-900">
-                  {portfolioName}
-                </h3>
-                <p className="text-gray-600 capitalize">
-                  {portfolio.type} Portfolio
-                </p>
-                <p className="text-sm text-gray-500">
-                  {portfolio.documents.length} documents • {portfolio.template}
-                </p>
+              
+              <div className="text-right">
+                <div className="flex items-center gap-4 text-sm text-gray-600">
+                  <BarChart3 className="w-4 h-4" />
+                  <span>{portfolio.views || 0} views</span>
+                </div>
+                <div className="flex items-center gap-4 text-sm text-gray-600">
+                  <Users className="w-4 h-4" />
+                  <span>{portfolio.uniqueViewers || 0} viewers</span>
+                </div>
               </div>
             </div>
-          </div>
 
-          {/* Sections */}
-          <div className="p-6 space-y-4">
-            {Object.entries(sections).map(([sectionName, sectionFiles]) => {
-              const SectionIcon = getSectionIcon(sectionName);
-              const sectionColor = getSectionColor(sectionName);
-              const files = sectionFiles as VaultDocument[];
-              
-              return (
-                <div key={sectionName} className="border border-gray-200 rounded-xl p-4 bg-gray-50">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-2">
-                      <div className={`w-8 h-8 ${sectionColor} rounded-lg flex items-center justify-center`}>
-                        <SectionIcon className="w-4 h-4 text-white" />
+            {/* Profile Section */}
+            {profileData.name && (
+              <div className="p-6 border-t border-gray-200">
+                <div className="flex items-center gap-3 mb-4">
+                  <User className="w-8 h-8 text-gray-400" />
+                  <h3 className="text-lg font-semibold text-gray-900">Profile</h3>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {profileData.email && (
+                    <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                      <Mail className="w-5 h-5 text-gray-400" />
+                      <div>
+                        <p className="text-sm font-medium text-gray-900">Email</p>
+                        <p className="text-sm text-gray-600">{profileData.email}</p>
                       </div>
-                      <h4 className="font-semibold text-gray-900">{sectionName}</h4>
                     </div>
-                    <span className="text-sm text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
-                      {files.length}
-                    </span>
-                  </div>
+                  )}
                   
-                  {/* Documents in Section */}
-                  {files.length > 0 ? (
-                    <div className="space-y-2">
-                      {files.map((file) => {
-                        const Icon = getFileIcon(file.type);
-                        const fileColor = getFileColor(file.type);
-                        
-                        return (
-                          <div key={file.id} className="bg-white rounded-lg p-3 border border-gray-200">
-                            <div className="flex items-center gap-3">
-                              <div className={`w-10 h-10 ${fileColor} rounded-lg flex items-center justify-center flex-shrink-0`}>
-                                <Icon className="w-5 h-5 text-white" />
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-2 mb-1">
-                                  <p className="text-sm font-medium text-gray-900 truncate">
-                                    {file.name}
-                                  </p>
-                                  {file.verified && (
-                                    <Shield className="w-3 h-3 text-blue-500 flex-shrink-0" />
-                                  )}
-                                </div>
-                                <div className="flex items-center gap-3 text-xs text-gray-500">
-                                  <span>{file.type.toUpperCase()}</span>
-                                  <span>{file.size}</span>
-                                  <span>{file.uploadDate}</span>
-                                </div>
-                              </div>
-                              <button className="p-2 text-gray-400 hover:text-gray-600 transition-colors">
-                                <Download className="w-4 h-4" />
-                              </button>
-                            </div>
-                          </div>
-                        );
-                      })}
+                  {profileData.phone && (
+                    <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                      <Phone className="w-5 h-5 text-gray-400" />
+                      <div>
+                        <p className="text-sm font-medium text-gray-900">Phone</p>
+                        <p className="text-sm text-gray-600">{profileData.phone}</p>
+                      </div>
                     </div>
-                  ) : (
-                    /* Empty placeholder */
-                    <div className="text-center py-4">
-                      <Plus className="w-8 h-8 text-gray-300 mx-auto mb-2" />
-                      <p className="text-sm text-gray-500 mb-2">No items in this section</p>
-                      <button className="text-xs text-blue-600 hover:text-blue-700 font-medium">
-                        + Add item
-                      </button>
+                  )}
+                  
+                  {profileData.linkedin && (
+                    <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                      <Globe className="w-5 h-5 text-gray-400" />
+                      <div>
+                        <p className="text-sm font-medium text-gray-900">LinkedIn</p>
+                        <p className="text-sm text-gray-600">{profileData.linkedin}</p>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {profileData.github && (
+                    <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                      <Globe className="w-5 h-5 text-gray-400" />
+                      <div>
+                        <p className="text-sm font-medium text-gray-900">GitHub</p>
+                        <p className="text-sm text-gray-600">{profileData.github}</p>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {profileData.portfolio && (
+                    <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                      <Globe className="w-5 h-5 text-gray-400" />
+                      <div>
+                        <p className="text-sm font-medium text-gray-900">Portfolio</p>
+                        <p className="text-sm text-gray-600">{profileData.portfolio}</p>
+                      </div>
                     </div>
                   )}
                 </div>
-              );
-            })}
+              </div>
+            )}
           </div>
         </div>
 
-        {/* Generate Link Button */}
-        <button
-          onClick={handleShare}
-          className="w-full py-4 bg-blue-500 text-white rounded-xl font-medium hover:bg-blue-600 transition-colors flex items-center justify-center gap-2"
-        >
-          <Link className="w-5 h-5" />
-          Generate Share Link
-        </button>
-      </div>
+        {/* STRUCTURED SECTIONS DISPLAY */}
+        <div className="space-y-6">
+          {portfolio.sections.map((section, index) => (
+            <div key={index} className="bg-white rounded-2xl shadow-sm overflow-hidden">
+              {/* Section Header */}
+              <div className="p-4 bg-gray-50 border-b border-gray-200">
+                <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                  <Briefcase className="w-5 h-5 text-blue-500" />
+                  {section.title}
+                  <span className="text-sm font-normal text-gray-500">
+                    ({section.documents.length} documents)
+                  </span>
+                </h3>
+              </div>
 
-      {/* QR Code Modal */}
-      {showQRCode && shareLink && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-2xl p-6 max-w-md mx-4">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-bold text-gray-900">Share Your Portfolio</h2>
+              {/* Section Content */}
+              <div className="p-4">
+                {section.documents.length === 0 ? (
+                  <div className="text-center py-8">
+                    <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <FileText className="w-8 h-8 text-gray-400" />
+                    </div>
+                    <h4 className="text-lg font-semibold text-gray-900 mb-2">No documents added</h4>
+                    <p className="text-gray-600">
+                      Add documents to this section to showcase your work
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {section.documents.map((docId) => {
+                      const doc = getDocumentDetails(docId);
+                      return doc ? (
+                        <div key={docId} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-3 mb-2">
+                                <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
+                                  <span className="text-lg">{getDocumentIcon(doc.type)}</span>
+                                </div>
+                                <div>
+                                  <h4 className="font-medium text-gray-900">{doc.name}</h4>
+                                  <p className="text-sm text-gray-600">
+                                    {doc.type} {formatFileSize(doc.size)} {formatDate(doc.uploadedAt)}
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+                            
+                            <div className="flex items-center gap-2">
+                              <button
+                                onClick={() => {
+                                  const win = window.open();
+                                  if (win) {
+                                    win.document.write(`
+                                      <iframe src="${doc.data}" width="100%" height="100%"></iframe>
+                                    `);
+                                  }
+                                }}
+                                className="p-2 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                                title="View document"
+                              >
+                                <Eye className="w-4 h-4 text-gray-700" />
+                              </button>
+                              
+                              <button
+                                onClick={() => {
+                                  const link = document.createElement('a');
+                                  link.href = doc.data;
+                                  link.download = doc.name;
+                                  link.click();
+                                }}
+                                className="p-2 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                                title="Download document"
+                              >
+                                <Download className="w-4 h-4 text-gray-700" />
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      ) : null;
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Action Buttons */}
+        <div className="bg-white rounded-2xl shadow-sm mt-6">
+          <div className="p-4">
+            <div className="grid grid-cols-2 gap-4">
               <button
-                onClick={() => setShowQRCode(false)}
-                className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
+                onClick={() => navigate(`/portfolio/select-documents/${portfolio.id}`)}
+                className="px-4 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors flex items-center justify-center gap-2"
               >
-                <EyeOff className="w-5 h-5 text-gray-700" />
+                <Plus className="w-4 h-4" />
+                Add Documents
+              </button>
+              
+              <button
+                onClick={() => navigate(`/portfolio/create`)}
+                className="px-4 py-3 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors flex items-center justify-center gap-2"
+              >
+                <Edit className="w-4 h-4" />
+                New Portfolio
               </button>
             </div>
-            <div className="bg-gray-100 rounded-xl p-6 mb-4">
-              <div className="w-32 h-32 bg-gray-200 rounded-lg mx-auto mb-4 flex items-center justify-center">
-                {/* QR Code */}
-                <div className="bg-white p-4 rounded-lg">
-                  <div className="w-32 h-32 bg-gray-200 rounded-lg mx-auto flex items-center justify-center">
-                    {qrCodeUrl ? (
-                      <img 
-                        src={qrCodeUrl} 
-                        alt="QR Code" 
-                        className="w-full h-full object-contain"
-                      />
-                    ) : (
-                      <div className="text-gray-400 text-sm">Generating QR...</div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="space-y-3">
-              <div>
-                <p className="text-sm font-medium text-gray-900 mb-2">Share Link</p>
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={shareLink}
-                    readOnly
-                    className="flex-1 px-4 py-3 bg-gray-50 border border-gray-300 rounded-lg text-gray-900"
-                  />
-                  <button
-                    onClick={handleCopyLink}
-                    className="px-4 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors flex items-center gap-2"
-                  >
-                    <Copy className="w-4 h-4" />
-                    Copy Link
-                  </button>
-                </div>
-              </div>
-            </div>
           </div>
         </div>
-      )}
+      </div>
     </div>
   );
 };

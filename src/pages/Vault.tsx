@@ -93,15 +93,6 @@ const Vault = () => {
   );
 
   // MENU FUNCTIONS
-  const handleView = (file: VaultFile) => {
-    if (!file.data) {
-      alert("Preview is unavailable for this file.");
-      setOpenMenuId(null);
-      return;
-    }
-    window.open(file.data, "_blank");
-    setOpenMenuId(null);
-  };
 
   const handleDelete = (id: string) => {
     const updated = files.filter((f) => f.id !== id);
@@ -220,13 +211,6 @@ const Vault = () => {
                   {/* MENU */}
                   {openMenuId === file.id && (
                     <div className="absolute right-2 top-10 bg-white shadow-lg rounded-lg p-2 z-50 min-w-[120px]">
-                      <button
-                        onClick={() => handleView(file)}
-                        className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded flex items-center gap-2"
-                      >
-                        <Eye className="w-4 h-4" />
-                        View
-                      </button>
                       <button
                         onClick={() => handleRename(file.id)}
                         className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded flex items-center gap-2"

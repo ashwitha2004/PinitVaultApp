@@ -18,6 +18,7 @@ interface Props {
 const Dashboard: React.FC<Props> = ({ uploadedFiles, onFileUpload, isUploading }) => {
   const [isUploadSheetOpen, setIsUploadSheetOpen] = useState(false);
   const [storedFiles, setStoredFiles] = useState<any[]>([]);
+  const [profile, setProfile] = useState<any>(null);
 
   const normalizeDataUrl = (value: unknown, mimeType?: string): string => {
     if (typeof value !== "string" || !value.trim()) return "";
@@ -65,8 +66,19 @@ const Dashboard: React.FC<Props> = ({ uploadedFiles, onFileUpload, isUploading }
   useEffect(() => {
     syncStoredFiles();
 
+    // Load profile data
+    const savedProfile = localStorage.getItem('user_profile');
+    if (savedProfile) {
+      setProfile(JSON.parse(savedProfile));
+    }
+
     const handleStorageChange = () => {
       syncStoredFiles();
+      // Reload profile data when storage changes
+      const updatedProfile = localStorage.getItem('user_profile');
+      if (updatedProfile) {
+        setProfile(JSON.parse(updatedProfile));
+      }
     };
 
     window.addEventListener("storage", handleStorageChange);
@@ -288,7 +300,7 @@ const Dashboard: React.FC<Props> = ({ uploadedFiles, onFileUpload, isUploading }
   return (
     <div className="bg-gradient-to-b from-blue-900 via-blue-800 to-black pb-20">
       <div className="max-w-md mx-auto">
-        <Header name="Ashwitha" showWelcome={true} />
+        <Header name={profile?.name || "User"} showWelcome={true} avatar={profile?.avatar} />
 
         {/* Stats Cards */}
         <div className="px-4 -mt-6">

@@ -1,236 +1,224 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { ArrowLeft, Search, Eye, Star, TrendingUp } from 'lucide-react';
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { ArrowLeft, Plus, FileText, Check } from 'lucide-react';
+import Header from '../components/Header';
+import { PORTFOLIO_TEMPLATES, createTemplatePortfolio, getPortfolioTypeDisplayName, getProfileData } from '../types/Portfolio';
+import type { Portfolio, CreatePortfolioInput } from '../types/Portfolio';
 
-const CreatePortfolio: React.FC = () => {
+const CreatePortfolio = () => {
   const navigate = useNavigate();
-  const location = useLocation();
-  const [selectedType, setSelectedType] = useState<'personal' | 'academic' | 'professional' | 'masters' | null>(null);
-  const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [currentStep, setCurrentStep] = useState(1);
+  const [portfolioName, setPortfolioName] = useState('');
+  const [selectedType, setSelectedType] = useState<Portfolio['type'] | null>(null);
+  const [portfolio, setPortfolio] = useState<CreatePortfolioInput | null>(null);
+  const [selectedDocuments, setSelectedDocuments] = useState<string[]>([]);
 
-  useEffect(() => {
-    const state = location.state as { selectedType?: 'personal' | 'academic' | 'professional' | 'masters' };
-    if (state?.selectedType) {
-      setSelectedType(state.selectedType);
-    } else {
-      // If no type selected, go back to type selection
-      navigate('/select-type');
-    }
-  }, [location.state, navigate]);
+  const handleTypeSelect = (type: Portfolio['type']) => {
+    setSelectedType(type);
+    setCurrentStep(2);
+  };
 
-  const templates = [
-    {
-      id: 'clean-resume',
-      name: 'Clean Resume Style',
-      description: 'Professional and clean layout perfect for traditional resumes',
-      thumbnail: '/api/placeholder/300/200',
-      tags: ['Minimalist', 'ATS Friendly'],
-      recommended: true,
-      popular: false
-    },
-    {
-      id: 'card-modern',
-      name: 'Card-Based Modern',
-      description: 'Modern card-based design with interactive elements',
-      thumbnail: '/api/placeholder/300/200',
-      tags: ['Interactive', 'Modern'],
-      recommended: false,
-      popular: true
-    },
-    {
-      id: 'professional-grid',
-      name: 'Professional Grid',
-      description: 'Grid-based layout showcasing multiple sections clearly',
-      thumbnail: '/api/placeholder/300/200',
-      tags: ['Block Grid', 'Professional'],
-      recommended: false,
-      popular: false
-    }
-  ];
+  const handleNameChange = (name: string) => {
+    setPortfolioName(name);
+  };
 
-  const filteredTemplates = templates.filter(template =>
-    template.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    template.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    template.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()))
-  );
-
-  const handleContinue = () => {
-    if (selectedTemplate && selectedType) {
-      navigate('/add-documents-from-vault', { 
-        state: { 
-          selectedType, 
-          selectedTemplate 
-        } 
-      });
+  const handleNextStep = () => {
+    if (currentStep < 3) {
+      setCurrentStep(currentStep + 1);
     }
   };
 
-  const handleBack = () => {
-    navigate('/select-type');
-  };
-
-  const handlePreviewTemplate = (templateId: string) => {
-    const template = templates.find(t => t.id === templateId);
-    if (template) {
-      alert(`Template preview for "${template.name}" coming soon!`);
+  const handlePreviousStep = () => {
+    if (currentStep > 1) {
+      setCurrentStep(currentStep - 1);
     }
   };
+
+  const handleCreatePortfolio = () => {
+    if (!selectedType || !portfolioName.trim()) {
+      alert('Please select a portfolio type and enter a name');
+      return;
+    }
+
+    // Create portfolio with template structure
+    const templatePortfolio = createTemplatePortfolio(portfolioName, selectedType, selectedDocuments);
+    const newPortfolio: Portfolio = {
+      ...templatePortfolio,
+      id: Date.now().toString(),
+      createdAt: new Date().toISOString()
+    };
+
+    // Save to localStorage
+    const existingPortfolios = JSON.parse(localStorage.getItem('portfolios') || '[]');
+    const updatedPortfolios = [newPortfolio, ...existingPortfolios];
+    localStorage.setItem('portfolios', JSON.stringify(updatedPortfolios));
+
+    setPortfolio(newPortfolio);
+    alert('Portfolio created successfully!');
+    
+    // Navigate to document selection
+    navigate(`/portfolio/select-documents/${newPortfolio.id}`);
+  };
+
+  const portfolioTypes: Portfolio['type'][] = ['academic', 'placement', 'masters', 'personal'];
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white border-b border-gray-200">
-        <div className="max-w-md mx-auto px-4 py-4">
-          <div className="flex items-center justify-between mb-4">
-            <button
-              onClick={handleBack}
-              className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
-            >
-              <ArrowLeft className="w-5 h-5 text-gray-700" />
-            </button>
-            <h1 className="text-lg font-semibold text-gray-900">Select Template</h1>
-            <div className="w-9"></div>
-          </div>
-          
-          {/* Step Indicator */}
-          <div className="flex items-center justify-center mb-4">
-            <div className="flex items-center space-x-2">
-              <div className="w-8 h-8 rounded-full bg-blue-500 text-white flex items-center justify-center text-sm font-medium">
-                1
-              </div>
-              <div className="w-8 h-0.5 bg-blue-500"></div>
-              <div className="w-8 h-8 rounded-full bg-blue-500 text-white flex items-center justify-center text-sm font-medium">
-                2
-              </div>
-              <div className="w-8 h-0.5 bg-gray-300"></div>
-              <div className="w-8 h-8 rounded-full bg-gray-300 text-gray-600 flex items-center justify-center text-sm font-medium">
-                3
-              </div>
-              <div className="w-8 h-0.5 bg-gray-300"></div>
-              <div className="w-8 h-8 rounded-full bg-gray-300 text-gray-600 flex items-center justify-center text-sm font-medium">
-                4
-              </div>
-            </div>
-          </div>
-          
-          <p className="text-center text-sm text-gray-600">Step 2 of 4</p>
-        </div>
-      </div>
-
-      {/* Content */}
-      <div className="max-w-md mx-auto px-4 py-6 pb-24">
-        {/* Search Input */}
-        <div className="mb-6">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search templates..."
-              className="w-full pl-10 pr-4 py-3 bg-white border border-gray-300 rounded-xl text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
-          </div>
-        </div>
-
-        {/* Template Cards */}
-        <div className="space-y-4">
-          {filteredTemplates.map((template) => (
-            <div
-              key={template.id}
-              className={`bg-white rounded-xl border-2 overflow-hidden transition-all cursor-pointer ${
-                selectedTemplate === template.id
-                  ? 'border-blue-500 shadow-lg'
-                  : 'border-gray-200 hover:border-gray-300 hover:shadow-md'
-              }`}
-              onClick={() => setSelectedTemplate(template.id)}
-            >
-              {/* Thumbnail */}
-              <div className="relative h-32 bg-gray-100">
-                <img 
-                  src={template.thumbnail} 
-                  alt={template.name}
-                  className="w-full h-full object-cover"
-                  onError={(e) => {
-                    // Fallback for broken images
-                    e.currentTarget.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="300" height="200" viewBox="0 0 300 200"%3E%3Crect width="300" height="200" fill="%23f3f4f6"/%3E%3Ctext x="50%25" y="50%25" dominant-baseline="middle" text-anchor="middle" font-family="sans-serif" font-size="14" fill="%236b7280"%3ETemplate Preview%3C/text%3E%3C/svg%3E';
-                  }}
-                />
-                
-                {/* Badges */}
-                <div className="absolute top-2 left-2 flex gap-2">
-                  {template.recommended && (
-                    <div className="bg-blue-500 text-white text-xs px-2 py-1 rounded-full flex items-center gap-1">
-                      <Star className="w-3 h-3" />
-                      Recommended
-                    </div>
-                  )}
-                  {template.popular && (
-                    <div className="bg-orange-500 text-white text-xs px-2 py-1 rounded-full flex items-center gap-1">
-                      <TrendingUp className="w-3 h-3" />
-                      Popular
-                    </div>
-                  )}
-                </div>
-                
-                {/* Preview Button */}
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handlePreviewTemplate(template.id);
-                  }}
-                  className="absolute top-2 right-2 bg-white/90 backdrop-blur-sm p-2 rounded-lg hover:bg-white transition-colors"
-                >
-                  <Eye className="w-4 h-4 text-gray-700" />
-                </button>
-              </div>
-              
-              {/* Content */}
-              <div className="p-4">
-                <div className="flex items-start justify-between mb-2">
-                  <h3 className="text-lg font-semibold text-gray-900">{template.name}</h3>
-                  {selectedTemplate === template.id && (
-                    <div className="w-6 h-6 rounded-full border-2 border-blue-500 bg-blue-500 flex items-center justify-center">
-                      <div className="w-2 h-2 rounded-full bg-white"></div>
-                    </div>
-                  )}
-                </div>
-                
-                <p className="text-gray-600 text-sm mb-3">{template.description}</p>
-                
-                {/* Tags */}
-                <div className="flex flex-wrap gap-2">
-                  {template.tags.map((tag, index) => (
-                    <span
-                      key={index}
-                      className="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded-full"
-                    >
-                      {tag}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
+      <Header showWelcome={false} />
       
-      {/* Fixed Bottom Continue Button */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-4 py-4">
-        <div className="max-w-md mx-auto">
+      <div className="max-w-md mx-auto px-4 py-6">
+        {/* Header */}
+        <div className="flex items-center mb-6">
           <button
-            onClick={handleContinue}
-            disabled={!selectedTemplate}
-            className={`w-full py-3 px-6 rounded-xl font-medium transition-colors ${
-              selectedTemplate
-                ? 'bg-blue-500 text-white hover:bg-blue-600'
-                : 'bg-gray-200 text-gray-400 cursor-not-allowed'
-            }`}
+            onClick={() => navigate(-1)}
+            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
           >
-            Continue
+            <ArrowLeft className="w-5 h-5 text-gray-700" />
           </button>
+          <h1 className="text-xl font-bold text-gray-900">Create Portfolio</h1>
         </div>
+
+        {/* Step 1: Portfolio Type Selection */}
+        {currentStep === 1 && (
+          <div className="bg-white rounded-2xl p-6 shadow-sm">
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">Choose Portfolio Type</h2>
+            <div className="grid grid-cols-1 gap-3">
+              {portfolioTypes.map((type) => (
+                <button
+                  key={type}
+                  onClick={() => handleTypeSelect(type)}
+                  className={`p-4 border-2 rounded-xl transition-all ${
+                    selectedType === type
+                      ? 'border-blue-500 bg-blue-50 text-blue-700'
+                      : 'border-gray-200 hover:border-gray-300 text-gray-700'
+                  }`}
+                >
+                  <div className="text-left">
+                    <h3 className="font-semibold mb-2">
+                      {getPortfolioTypeDisplayName(type)}
+                    </h3>
+                    <p className="text-sm text-gray-600">
+                      {PORTFOLIO_TEMPLATES[type].sections.join(' + ')}
+                    </p>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Step 2: Portfolio Details */}
+        {currentStep === 2 && selectedType && (
+          <div className="bg-white rounded-2xl p-6 shadow-sm">
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">Portfolio Details</h2>
+            
+            {/* Portfolio Name */}
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-gray-700 mb-2">Portfolio Name</label>
+              <input
+                type="text"
+                value={portfolioName}
+                onChange={(e) => handleNameChange(e.target.value)}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="Enter portfolio name"
+              />
+            </div>
+
+            {/* Preview Sections */}
+            <div className="mb-6">
+              <h3 className="text-md font-semibold text-gray-900 mb-4">Portfolio Structure</h3>
+              <div className="space-y-3">
+                {PORTFOLIO_TEMPLATES[selectedType].sections.map((sectionTitle, index) => (
+                  <div key={index} className="border border-gray-200 rounded-lg p-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Check className="w-4 h-4 text-green-500" />
+                      <h4 className="font-medium text-gray-900">{sectionTitle}</h4>
+                    </div>
+                    <p className="text-sm text-gray-600">
+                      Documents will be auto-assigned to this section
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Navigation */}
+            <div className="flex justify-between">
+              <button
+                onClick={handlePreviousStep}
+                className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                Previous
+              </button>
+              <button
+                onClick={handleNextStep}
+                disabled={!portfolioName.trim()}
+                className="px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Step 3: Review & Create */}
+        {currentStep === 3 && selectedType && portfolioName && (
+          <div className="bg-white rounded-2xl p-6 shadow-sm">
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">Review & Create</h2>
+            
+            {/* Portfolio Summary */}
+            <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+              <div className="space-y-2">
+                <div className="flex justify-between">
+                  <span className="text-sm font-medium text-gray-700">Portfolio Name:</span>
+                  <span className="text-sm font-semibold text-gray-900">{portfolioName}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-sm font-medium text-gray-700">Type:</span>
+                  <span className="text-sm font-semibold text-gray-900">{getPortfolioTypeDisplayName(selectedType)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-sm font-medium text-gray-700">Sections:</span>
+                  <span className="text-sm font-semibold text-gray-900">
+                    {PORTFOLIO_TEMPLATES[selectedType].sections.length} sections
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Sections Preview */}
+            <div className="mb-6">
+              <h3 className="text-md font-semibold text-gray-900 mb-4">Portfolio Structure</h3>
+              <div className="space-y-2">
+                {PORTFOLIO_TEMPLATES[selectedType].sections.map((sectionTitle, index) => (
+                  <div key={index} className="border border-gray-200 rounded-lg p-3">
+                    <div className="flex items-center gap-2">
+                      <FileText className="w-4 h-4 text-blue-500" />
+                      <h4 className="font-medium text-gray-900">{sectionTitle}</h4>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex justify-between">
+              <button
+                onClick={handlePreviousStep}
+                className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                Previous
+              </button>
+              <button
+                onClick={handleCreatePortfolio}
+                disabled={!portfolioName.trim()}
+                className="px-6 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Create Portfolio
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

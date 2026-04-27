@@ -5,18 +5,27 @@ interface Props {
   name?: string;
   id?: string;
   showWelcome?: boolean;
+  avatar?: string;
 }
 
-const Header: React.FC<Props> = ({ name = "Ashwitha", id, showWelcome = false }) => {
+const Header: React.FC<Props> = ({ name = "Ashwitha", id, showWelcome = false, avatar }) => {
   return (
     <div className="bg-gradient-to-r from-blue-800 to-black px-6 py-6 rounded-b-3xl shadow-2xl">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <img
-            src="https://i.pravatar.cc/100"
-            className="w-12 h-12 rounded-full border-2 border-white/20"
-            alt="Profile"
-          />
+          {avatar ? (
+            <img
+              src={avatar}
+              className="w-12 h-12 rounded-full border-2 border-white/20 object-cover"
+              alt="Profile"
+            />
+          ) : (
+            <img
+              src="https://i.pravatar.cc/100"
+              className="w-12 h-12 rounded-full border-2 border-white/20"
+              alt="Profile"
+            />
+          )}
           <div>
             {showWelcome && <p className="text-white/70 text-sm">Welcome back,</p>}
             <p className="text-white text-lg font-semibold">{name}</p>

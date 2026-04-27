@@ -14,6 +14,8 @@ import ChooseTemplate from "./pages/ChooseTemplate";
 import AddDocumentsFromVault from "./pages/AddDocumentsFromVault";
 import PortfolioCreationDraft from "./pages/PortfolioCreationDraft";
 import PortfolioPreview from "./pages/PortfolioPreview";
+import PortfolioShare from "./pages/PortfolioShare";
+import PublicPortfolio from "./pages/PublicPortfolio";
 import Activity from "./pages/Activity";
 import Profile from "./pages/Profile";
 
@@ -125,6 +127,8 @@ function App() {
               <Route path="/add-documents-from-vault" element={<AddDocumentsFromVault />} />
               <Route path="/portfolio-creation-draft" element={<PortfolioCreationDraft />} />
               <Route path="/portfolio-preview" element={<PortfolioPreview />} />
+              <Route path="/portfolio/share/:id" element={<PortfolioShare />} />
+              <Route path="/p/:id" element={<PublicPortfolio />} />
               <Route path="/activity" element={<Activity />} />
               <Route path="/profile" element={<Profile />} />
             </Routes>

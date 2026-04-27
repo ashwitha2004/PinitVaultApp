@@ -1,260 +1,285 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Check, FileText, Image, Video, BookOpen, Briefcase, Award } from 'lucide-react';
-import { loadVaultDocuments, type VaultDocument } from '../utils/portfolioBuilder';
+import { useState, useEffect } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
+import { ArrowLeft, Plus, FileText, Check, Search } from 'lucide-react';
+import Header from '../components/Header';
+import type { Portfolio } from '../types/Portfolio';
 
-const SelectDocuments: React.FC = () => {
+interface VaultDocument {
+  id: string;
+  name: string;
+  type: string;
+  size: number;
+  data: string;
+  uploadedAt: string;
+}
+
+const SelectDocuments = () => {
   const navigate = useNavigate();
-  const [selectedDocs, setSelectedDocs] = useState<string[]>([]);
-  const [files, setFiles] = useState<VaultDocument[]>([]);
+  const { portfolioId } = useParams<{ portfolioId: string }>();
+  const [portfolio, setPortfolio] = useState<Portfolio | null>(null);
+  const [vaultDocuments, setVaultDocuments] = useState<VaultDocument[]>([]);
+  const [selectedDocuments, setSelectedDocuments] = useState<Set<string>>(new Set());
+  const [searchQuery, setSearchQuery] = useState('');
+  const [currentSectionIndex, setCurrentSectionIndex] = useState(0);
 
   useEffect(() => {
-    // Load documents from vaultDocuments localStorage
-    try {
-      const vaultDocs = loadVaultDocuments();
-      setFiles(vaultDocs);
-    } catch (error) {
-      console.error('Error loading vault documents:', error);
-      setFiles([]);
+    // Load portfolio from localStorage
+    const portfolios = JSON.parse(localStorage.getItem('portfolios') || '[]');
+    const foundPortfolio = portfolios.find((p: Portfolio) => p.id === portfolioId);
+    
+    if (foundPortfolio) {
+      setPortfolio(foundPortfolio);
+    } else {
+      navigate('/portfolios');
     }
-  }, []);
 
-  const getFileIcon = (type: string) => {
-    switch (type) {
-      case 'image':
-        return Image;
-      case 'video':
-        return Video;
-      default:
-        return FileText;
-    }
-  };
+    // Load vault documents
+    const documents = JSON.parse(localStorage.getItem('vaultFiles') || '[]');
+    setVaultDocuments(documents);
+  }, [portfolioId, navigate]);
 
-  const getFileColor = (type: string) => {
-    switch (type) {
-      case 'image':
-        return 'bg-green-500';
-      case 'video':
-        return 'bg-purple-500';
-      default:
-        return 'bg-red-500';
-    }
-  };
-
-  const getGroupedFiles = () => {
-    const groups: { [key: string]: VaultDocument[] } = {
-      Academic: [],
-      Professional: [],
-      Projects: [],
-      Certifications: []
-    };
-
-    files.forEach(file => {
-      switch (file.category) {
-        case 'academic':
-          groups.Academic.push(file);
-          break;
-        case 'resume':
-          groups.Professional.push(file);
-          break;
-        case 'project':
-          groups.Projects.push(file);
-          break;
-        case 'certification':
-          groups.Certifications.push(file);
-          break;
+  const handleDocumentToggle = (documentId: string) => {
+    setSelectedDocuments(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(documentId)) {
+        newSet.delete(documentId);
+      } else {
+        newSet.add(documentId);
       }
+      return newSet;
+    });
+  };
+
+  const handleSelectAllInSection = () => {
+    if (!portfolio) return;
+    
+    const section = portfolio.sections[currentSectionIndex];
+    const sectionDocumentIds = new Set(section.documents);
+    
+    setSelectedDocuments(prev => {
+      const newSet = new Set(prev);
+      sectionDocumentIds.forEach(docId => newSet.add(docId));
+      return newSet;
+    });
+  };
+
+  const handleDeselectAllInSection = () => {
+    if (!portfolio) return;
+    
+    const section = portfolio.sections[currentSectionIndex];
+    const sectionDocumentIds = new Set(section.documents);
+    
+    setSelectedDocuments(prev => {
+      const newSet = new Set(prev);
+      sectionDocumentIds.forEach(docId => newSet.delete(docId));
+      return newSet;
+    });
+  };
+
+  const handleSaveDocuments = () => {
+    if (!portfolio || selectedDocuments.size === 0) {
+      alert('Please select at least one document');
+      return;
+    }
+
+    // Update portfolio with selected documents
+    const updatedSections = portfolio.sections.map((section, index) => {
+      if (index === currentSectionIndex) {
+        return {
+          ...section,
+          documents: Array.from(selectedDocuments)
+        };
+      }
+      return section;
     });
 
-    return groups;
+    const updatedPortfolio = {
+      ...portfolio,
+      sections: updatedSections,
+      updatedAt: new Date().toISOString()
+    };
+
+    // Save to localStorage
+    const portfolios = JSON.parse(localStorage.getItem('portfolios') || '[]');
+    const updatedPortfolios = portfolios.map((p: Portfolio) => 
+      p.id === portfolioId ? updatedPortfolio : p
+    );
+    localStorage.setItem('portfolios', JSON.stringify(updatedPortfolios));
+
+    setPortfolio(updatedPortfolio);
+    alert('Documents saved successfully!');
+    navigate(`/portfolio/${portfolioId}`);
   };
 
-  const getGroupIcon = (group: string) => {
-    switch (group) {
-      case 'Academic':
-        return BookOpen;
-      case 'Professional':
-        return Briefcase;
-      case 'Projects':
-        return FileText;
-      case 'Certifications':
-        return Award;
-      default:
-        return FileText;
-    }
-  };
-
-  const getGroupColor = (group: string) => {
-    switch (group) {
-      case 'Academic':
-        return 'bg-purple-500';
-      case 'Professional':
-        return 'bg-blue-500';
-      case 'Projects':
-        return 'bg-orange-500';
-      case 'Certifications':
-        return 'bg-green-500';
-      default:
-        return 'bg-gray-500';
-    }
-  };
-
-  const toggleSelection = (fileId: string) => {
-    setSelectedDocs(prev => 
-      prev.includes(fileId) 
-        ? prev.filter(id => id !== fileId)
-        : [...prev, fileId]
+  const getFilteredDocuments = () => {
+    if (!searchQuery) return vaultDocuments;
+    
+    return vaultDocuments.filter(doc =>
+      doc.name.toLowerCase().includes(searchQuery.toLowerCase())
     );
   };
 
-  const handleNext = () => {
-    if (selectedDocs.length > 0) {
-      navigate('/choose-template', { state: { selectedDocs } });
-    }
+  const getDocumentIcon = (type: string) => {
+    if (type.includes('pdf')) return '📄';
+    if (type.includes('image')) return '🖼️';
+    if (type.includes('video')) return '🎥';
+    return '📄';
   };
 
-  const handleBack = () => {
-    navigate('/portfolio');
+  const formatFileSize = (bytes: number) => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
-  const groupedFiles = getGroupedFiles();
-  const selectedFiles = files.filter(file => selectedDocs.includes(file.id));
+  if (!portfolio) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-200"></div>
+          <p className="mt-4 text-gray-600">Loading portfolio...</p>
+        </div>
+      </div>
+    );
+  }
+
+  const currentSection = portfolio.sections[currentSectionIndex];
+  const sectionDocumentIds = new Set(currentSection.documents);
+  const selectedCountInSection = Array.from(selectedDocuments).filter(docId => sectionDocumentIds.has(docId)).length;
+  const totalCountInSection = currentSection.documents.length;
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white border-b border-gray-200">
-        <div className="max-w-md mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <button
-              onClick={handleBack}
-              className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
-            >
-              <ArrowLeft className="w-5 h-5 text-gray-700" />
-            </button>
-            <h1 className="text-lg font-semibold text-gray-900">Select Documents</h1>
-            <div className="w-9"></div>
-          </div>
-        </div>
-      </div>
-
-      {/* Content */}
+      <Header showWelcome={false} />
+      
       <div className="max-w-md mx-auto px-4 py-6">
-        {/* Selected Count */}
-        <div className="mb-6">
-          <div className="flex items-center justify-between">
-            <h2 className="text-xl font-bold text-gray-900">Select documents</h2>
-            <div className="bg-blue-500 text-white px-3 py-1 rounded-full text-sm font-medium">
-              {selectedDocs.length} selected
-            </div>
-          </div>
-          <p className="text-gray-600 text-sm mt-1">Choose documents to include in your portfolio</p>
+        {/* Header */}
+        <div className="flex items-center mb-6">
+          <button
+            onClick={() => navigate(-1)}
+            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+          >
+            <ArrowLeft className="w-5 h-5 text-gray-700" />
+          </button>
+          <h1 className="text-xl font-bold text-gray-900">Select Documents</h1>
+          <span className="text-sm text-gray-600">{portfolio.name}</span>
         </div>
 
-        {/* Document Groups */}
-        <div className="space-y-6 mb-8">
-          {Object.entries(groupedFiles).map(([groupName, groupFiles]) => {
-            if (groupFiles.length === 0) return null;
-            
-            const GroupIcon = getGroupIcon(groupName);
-            const groupColor = getGroupColor(groupName);
-            
-            return (
-              <div key={groupName}>
-                {/* Group Header */}
-                <div className="flex items-center gap-2 mb-3">
-                  <div className={`w-8 h-8 ${groupColor} rounded-lg flex items-center justify-center`}>
-                    <GroupIcon className="w-4 h-4 text-white" />
-                  </div>
-                  <h3 className="text-lg font-semibold text-gray-900">{groupName}</h3>
-                  <span className="text-sm text-gray-500">({groupFiles.length})</span>
+        {/* Section Tabs */}
+        <div className="bg-white rounded-2xl p-4 shadow-sm mb-6">
+          <div className="flex gap-2 overflow-x-auto pb-2">
+            {portfolio.sections.map((section, index) => (
+              <button
+                key={index}
+                onClick={() => setCurrentSectionIndex(index)}
+                className={`px-4 py-2 rounded-lg font-medium transition-colors whitespace-nowrap ${
+                  currentSectionIndex === index
+                    ? 'bg-blue-500 text-white'
+                    : 'text-gray-600 hover:bg-gray-100'
+                }`}
+              >
+                {section.title}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Search Bar */}
+        <div className="bg-white rounded-2xl p-4 shadow-sm mb-6">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="Search documents..."
+            />
+          </div>
+        </div>
+
+        {/* Section Actions */}
+        <div className="bg-white rounded-2xl p-4 shadow-sm mb-6">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold text-gray-900">{currentSection.title}</h3>
+            <div className="flex gap-2">
+              <button
+                onClick={handleSelectAllInSection}
+                className="px-3 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-sm"
+              >
+                Select All
+              </button>
+              <button
+                onClick={handleDeselectAllInSection}
+                className="px-3 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors text-sm"
+              >
+                Deselect All
+              </button>
+            </div>
+            <div className="text-sm text-gray-600">
+              {selectedCountInSection} of {totalCountInSection} selected
+            </div>
+          </div>
+        </div>
+
+        {/* Documents List */}
+        <div className="bg-white rounded-2xl shadow-sm">
+          <div className="p-4">
+            {getFilteredDocuments().length === 0 ? (
+              <div className="text-center py-8">
+                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <FileText className="w-8 h-8 text-gray-400" />
                 </div>
-
-                {/* Files in Group */}
-                <div className="space-y-2">
-                  {groupFiles.map((file) => {
-                    const Icon = getFileIcon(file.type);
-                    const fileColor = getFileColor(file.type);
-                    const isSelected = selectedDocs.includes(file.id);
-                    
-                    return (
-                      <button
-                        key={file.id}
-                        onClick={() => toggleSelection(file.id)}
-                        className={`w-full p-4 rounded-xl border-2 transition-all text-left ${
-                          isSelected
-                            ? 'border-blue-500 bg-blue-50 shadow-md'
-                            : 'border-gray-200 bg-white hover:border-gray-300 hover:shadow-sm'
-                        }`}
-                      >
-                        <div className="flex items-center gap-3">
-                          {/* Selection Indicator */}
-                          {isSelected && (
-                            <div className="w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center flex-shrink-0">
-                              <Check className="w-3 h-3 text-white" />
-                            </div>
-                          )}
-                          {!isSelected && (
-                            <div className="w-5 h-5 border-2 border-gray-300 rounded-full flex-shrink-0"></div>
-                          )}
-
-                          {/* File Icon */}
-                          <div className={`w-10 h-10 ${fileColor} rounded-lg flex items-center justify-center flex-shrink-0`}>
-                            <Icon className="w-5 h-5 text-white" />
-                          </div>
-
-                          {/* File Info */}
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-gray-900 truncate">
-                              {file.name}
-                            </p>
-                            <p className="text-xs text-gray-500">
-                              {file.type}
-                            </p>
-                          </div>
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
+                <h4 className="text-lg font-semibold text-gray-900 mb-2">No Documents Found</h4>
+                <p className="text-gray-600">
+                  {searchQuery ? 'No documents match your search' : 'No documents in your Vault'}
+                </p>
               </div>
-            );
-          })}
-        </div>
-
-        {/* Selected Files Summary */}
-        {selectedFiles.length > 0 && (
-          <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-6">
-            <p className="text-sm font-medium text-blue-900 mb-2">
-              {selectedFiles.length} documents selected
-            </p>
-            <div className="space-y-1">
-              {selectedFiles.slice(0, 3).map((file) => (
-                <p key={file.id} className="text-xs text-blue-700 truncate">
-                  {file.name}
-                </p>
-              ))}
-              {selectedFiles.length > 3 && (
-                <p className="text-xs text-blue-700">
-                  +{selectedFiles.length - 3} more documents
-                </p>
-              )}
-            </div>
+            ) : (
+              <div className="space-y-3">
+                {getFilteredDocuments().map((document) => (
+                  <label
+                    key={document.id}
+                    className="flex items-center gap-3 p-4 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selectedDocuments.has(document.id)}
+                      onChange={() => handleDocumentToggle(document.id)}
+                      className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+                    />
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
+                          <span className="text-lg">{getDocumentIcon(document.type)}</span>
+                        </div>
+                        <div>
+                          <h4 className="font-medium text-gray-900">{document.name}</h4>
+                          <p className="text-sm text-gray-600">
+                            {document.type} • {formatFileSize(document.size)}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </label>
+                ))}
+              </div>
+            )}
           </div>
-        )}
 
-        {/* Next Button */}
-        <button
-          onClick={handleNext}
-          disabled={selectedDocs.length === 0}
-          className={`w-full py-4 rounded-xl font-medium transition-colors ${
-            selectedDocs.length > 0
-              ? 'bg-blue-500 text-white hover:bg-blue-600'
-              : 'bg-gray-200 text-gray-400 cursor-not-allowed'
-          }`}
-        >
-          Next {selectedDocs.length > 0 && `(${selectedDocs.length})`}
-        </button>
+          {/* Save Button */}
+          <div className="p-4 border-t border-gray-200">
+            <button
+              onClick={handleSaveDocuments}
+              disabled={selectedDocuments.size === 0}
+              className="w-full px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Save Documents to Portfolio
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );
