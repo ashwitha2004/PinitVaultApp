@@ -1,7 +1,8 @@
 import { Home, Folder, Briefcase, Clock, User } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
+import React from "react";
 
-const BottomNav = () => {
+const BottomNav = React.memo(() => {
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -38,6 +39,6 @@ const BottomNav = () => {
 
     </div>
   );
-};
+});
 
 export default BottomNav;

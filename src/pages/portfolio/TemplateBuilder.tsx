@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, memo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { ArrowLeft, Plus } from 'lucide-react';
 import DocumentItem from '../../components/portfolio/DocumentItem';
+import PersonalInfoForm from '../../components/portfolio/PersonalInfoForm';
 
 interface DocumentItem {
   documentId: string;
@@ -34,11 +35,7 @@ interface TemplateBuilderProps {
   onSave?: (data: PortfolioData) => Promise<void>;
 }
 
-const TemplateBuilder: React.FC<TemplateBuilderProps> = ({ 
-  initialData, 
-  mode = 'create', 
-  onSave 
-}) => {
+const TemplateBuilder = memo(({ mode = 'create', initialData, onSave }: TemplateBuilderProps) => {
   const navigate = useNavigate();
   const location = useLocation();
   const [type, setType] = useState<string>('masters');
@@ -65,6 +62,59 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({
   // Handle selected documents from vault
   useEffect(() => {
     try {
+      // Debug: Check location.state
+      console.log("LOCATION STATE:", location.state);
+      
+      // Use sessionStorage fallback for React Router state clearing
+      const state = location.state || JSON.parse(sessionStorage.getItem("selectedDoc") || "null");
+      
+      // Check for selectedFile and type from navigation state
+      if (state?.selectedFile && state?.type) {
+        const { selectedFile, type } = state;
+        
+        console.log("Processing selected file:", selectedFile, "type:", type);
+        
+        // Map type to correct document category
+        const categoryMapping: { [key: string]: 'personalProofs' | 'academic' | 'internships' | 'certifications' | 'exams' | 'others' } = {
+          'resume': 'personalProofs',
+          'aadhaar': 'personalProofs', 
+          'passport': 'personalProofs',
+          'photo': 'personalProofs',
+          '10th_certificate': 'academic',
+          '12th_certificate': 'academic',
+          'degree_certificate': 'academic',
+          'semester_scorecards': 'academic',
+          'offer_letter': 'internships',
+          'completion_certificate': 'internships',
+          'courses': 'certifications',
+          'workshops': 'certifications',
+          'hackathons': 'certifications',
+          'other': 'others'
+        };
+        
+        const category = categoryMapping[type] || 'others';
+        
+        // Create document item with correct structure
+        const documentItem = {
+          documentId: selectedFile.id,
+          name: selectedFile.name
+        };
+        
+        // Update portfolio data with correct category
+        setPortfolioData(prev => ({
+          ...prev,
+          documents: {
+            ...prev.documents,
+            [category]: [...prev.documents[category], documentItem]
+          }
+        }));
+        
+        // Clear sessionStorage to prevent re-processing
+        sessionStorage.removeItem("selectedDoc");
+        
+        return;
+      }
+      
       const stored = localStorage.getItem("selectedDocuments");
       
       if (stored) {
@@ -127,9 +177,7 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({
             name: doc.name
           };
           
-          if (updatedPortfolioDocs[mapping.section]) {
-            updatedPortfolioDocs[mapping.section].push(portfolioDoc);
-          }
+          updatedPortfolioDocs[mapping.category].push(portfolioDoc);
         });
         
         // Update states with all documents
@@ -179,7 +227,7 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({
     { id: '10', name: 'IELTS Certificate.pdf', type: 'pdf' }
   ];
 
-  const handleProfileChange = (field: string, value: string) => {
+  const handleProfileChange = useCallback((field: string, value: string) => {
     setPortfolioData(prev => ({
       ...prev,
       profile: {
@@ -187,104 +235,43 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({
         [field]: value
       }
     }));
-  };
+  }, []);
 
-  const handleDocumentSelect = (section: string) => {
-    // Navigate to vault selection
-    navigate('/select-from-vault');
-  };
+  const handleDocumentSelect = useCallback((section: string) => {
+    // Navigate to vault selection with document type
+    navigate('/select-from-vault', { state: { type: section } });
+  }, [navigate]);
 
-  const handleRemoveDocument = (section: string, documentId: string) => {
+  const handleRemoveDocument = useCallback((section: string, documentId: string) => {
     setPortfolioData(prev => ({
       ...prev,
       documents: {
         ...prev.documents,
-        [section]: prev.documents[section as keyof typeof prev.documents].filter(
-          doc => doc.documentId !== documentId
-        )
+        [section]: prev.documents[section as keyof typeof prev.documents].filter(doc => doc.documentId !== documentId)
       }
     }));
-  };
+  }, []);
 
-  const handleReviewSubmit = () => {
+  const handleReviewSubmit = useCallback(() => {
     if (mode === 'edit' && onSave) {
       // In edit mode, call the onSave function directly
       onSave(portfolioData);
     } else {
       // In create mode, navigate to review page
-      navigate('/portfolio/review', { state: portfolioData });
+      navigate('/portfolio/review', { state: { portfolioData } });
     }
-  };
+  }, [mode, onSave, portfolioData, navigate]);
 
-  // Check if any documents are selected
-  const hasSelectedDocuments = () => {
+  const hasSelectedDocuments = useCallback(() => {
+    const selectedDocs = portfolioData.documents;
     return Object.values(selectedDocs).some(doc => doc !== null && doc !== undefined);
-  };
+  }, [portfolioData.documents]);
 
-  const handleBack = () => {
+  const handleBack = useCallback(() => {
     navigate('/portfolio/create');
-  };
+  }, [navigate]);
 
   
-  // Personal Info Section
-  const PersonalInfoSection = () => (
-    <div className="bg-white rounded-xl shadow-sm p-4 mb-4">
-      <h3 className="text-lg font-semibold text-gray-900 mb-4">Personal Information</h3>
-      <div className="space-y-3">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
-          <input
-            type="text"
-            value={portfolioData.profile.fullName}
-            onChange={(e) => handleProfileChange('fullName', e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            placeholder="Enter your full name"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-          <input
-            type="email"
-            value={portfolioData.profile.email}
-            onChange={(e) => handleProfileChange('email', e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            placeholder="Enter your email"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
-          <input
-            type="tel"
-            value={portfolioData.profile.phone}
-            onChange={(e) => handleProfileChange('phone', e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            placeholder="Enter your phone number"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Role</label>
-          <input
-            type="text"
-            value={portfolioData.profile.role}
-            onChange={(e) => handleProfileChange('role', e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            placeholder="e.g., Student, Professional"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Summary</label>
-          <textarea
-            value={portfolioData.profile.summary}
-            onChange={(e) => handleProfileChange('summary', e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            rows={3}
-            placeholder="Brief summary about yourself"
-          />
-        </div>
-      </div>
-    </div>
-  );
-
   // Document Section Component
   const DocumentSection = ({ title, sectionKey, items }: { title: string; sectionKey: keyof typeof portfolioData.documents; items: string[] }) => (
     <div className="bg-white rounded-xl shadow-sm p-4 mb-4">
@@ -321,7 +308,7 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({
           
           return (
             <DocumentItem
-              key={item}
+              key={`${sectionKey}-${item}`}
               title={item}
               value={selectedDoc?.name || uploadedDoc?.name}
               uploaded={!!selectedDoc || !!uploadedDoc}
@@ -378,7 +365,10 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({
 
         {/* Content */}
         <div>
-          <PersonalInfoSection />
+          <PersonalInfoForm 
+            data={portfolioData.profile}
+            onChange={handleProfileChange}
+          />
           
           <DocumentSection
             title="Personal Proofs"
@@ -433,6 +423,6 @@ const TemplateBuilder: React.FC<TemplateBuilderProps> = ({
       </div>
     </div>
   );
-};
+});
 
 export default TemplateBuilder;

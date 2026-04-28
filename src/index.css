@@ -15,12 +15,12 @@
 .app-container {
   width: 100%;
   max-width: 430px; /* Pixel width */
-  height: 100vh;
+  min-height: 100vh; /* Allow content to expand */
   background: #fff;
   position: relative;
   display: flex;
   flex-direction: column;
-  overflow: hidden; /* Prevent container scroll */
+  overflow: visible; /* Allow scrolling */
 }
 
 /* Bottom Navigation */
@@ -56,6 +56,13 @@ button {
   min-height: 48px;
   border-radius: 12px;
   font-size: 16px;
+}
+
+/* Vault List Scrolling */
+.vault-list {
+  overflow-y: auto;
+  max-height: calc(100vh - 120px); /* adjust for header + navbar */
+  padding-bottom: 80px; /* avoid bottom navbar overlap */
 }
 
 input {

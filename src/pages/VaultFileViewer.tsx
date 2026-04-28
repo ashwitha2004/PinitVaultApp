@@ -8,8 +8,10 @@ interface VaultFile {
   name: string;
   type: string;
   size: number;
-  data: string;
+  data: string | null;
   uploadedAt: string;
+  isProtected?: boolean;
+  fileObject?: File | null;
 }
 
 const VaultFileViewer = () => {
@@ -114,30 +116,69 @@ const VaultFileViewer = () => {
 
     // PDF files
     if (file.type.includes('pdf')) {
-      return (
-        <div className="w-full h-full">
-          <iframe
-            src={file.data}
-            title={file.name}
-            className="w-full h-full border-0"
-            style={{ minHeight: '600px' }}
-          />
-        </div>
-      );
+      if (file.data && !file.isProtected) {
+        return (
+          <div className="w-full h-full">
+            <iframe
+              src={file.data}
+              title={file.name}
+              className="w-full h-full border-0"
+              style={{ minHeight: '600px' }}
+            />
+          </div>
+        );
+      } else {
+        // Protected PDF - show fallback
+        return (
+          <div className="flex flex-col items-center justify-center w-full h-full text-center p-8">
+            <div className="w-24 h-24 bg-gray-200 rounded-full flex items-center justify-center mb-6">
+              <FileText className="w-12 h-12 text-gray-400" />
+            </div>
+            <h3 className="text-xl font-semibold text-gray-900 mb-2">Preview not available</h3>
+            <p className="text-gray-600 mb-6">
+              This PDF is password-protected. Preview is not available, but you can download and view it with the correct password.
+            </p>
+            <div className="space-y-2">
+              <p className="text-sm text-gray-500">File type: {file.type}</p>
+              <p className="text-sm text-gray-500">Size: {formatFileSize(file.size)}</p>
+              <p className="text-sm text-orange-600">🔒 Password protected</p>
+            </div>
+          </div>
+        );
+      }
     }
 
     // Image files
     if (file.type.includes('image')) {
-      return (
-        <div className="flex items-center justify-center w-full h-full">
-          <img
-            src={file.data}
-            alt={file.name}
-            className="max-w-full max-h-full object-contain"
-            style={{ maxHeight: '80vh' }}
-          />
-        </div>
-      );
+      if (file.data) {
+        return (
+          <div className="flex items-center justify-center w-full h-full">
+            <img
+              src={file.data}
+              alt={file.name}
+              className="max-w-full max-h-full object-contain"
+              style={{ maxHeight: '80vh' }}
+            />
+          </div>
+        );
+      } else {
+        // Protected image - show fallback
+        return (
+          <div className="flex flex-col items-center justify-center w-full h-full text-center p-8">
+            <div className="w-24 h-24 bg-gray-200 rounded-full flex items-center justify-center mb-6">
+              <Image className="w-12 h-12 text-gray-400" />
+            </div>
+            <h3 className="text-xl font-semibold text-gray-900 mb-2">Preview not available</h3>
+            <p className="text-gray-600 mb-6">
+              This image could not be previewed. Please download to view.
+            </p>
+            <div className="space-y-2">
+              <p className="text-sm text-gray-500">File type: {file.type}</p>
+              <p className="text-sm text-gray-500">Size: {formatFileSize(file.size)}</p>
+            </div>
+          </div>
+        );
+      }
     }
 
     // Video files

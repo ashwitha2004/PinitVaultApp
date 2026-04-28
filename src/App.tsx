@@ -83,26 +83,21 @@ function App() {
 
   const handleFileUpload = (file: File, fileType: string) => {
     setIsUploading(true);
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const base64String = e.target?.result as string;
-      console.log('FileReader result:', base64String); // Debug log
+    
+    try {
+      console.log('File upload:', file.name, file.type); // Debug log
       
-      // Verify base64 format
-      if (!base64String || !base64String.startsWith('data:')) {
-        console.error('Invalid base64 data generated');
-        setIsUploading(false);
-        return;
-      }
-      
+      // Store file without reading content
       const newFile: UploadedFile = {
         id: Date.now().toString(),
         name: file.name,
         type: fileType as "pdf" | "image" | "video",
         size: file.size,
         createdAt: new Date().toISOString(),
-        data: base64String,
+        data: null, // Store as null initially
+        fileObject: file, // Store the File object reference
         mimeType: file.type,
+        isProtected: false, // Will be determined when preview is attempted
       };
       setUploadedFiles(prev => [...prev, newFile]);
       setIsUploading(false);
@@ -111,37 +106,42 @@ function App() {
       window.dispatchEvent(new CustomEvent('vaultFilesUpdated'));
       
       alert('File uploaded successfully!');
-    };
-    reader.readAsDataURL(file);
+    } catch (error) {
+      console.error('Upload error:', error);
+      setIsUploading(false);
+      alert('Error uploading file. Please try again.');
+    }
   };
   return (
     <BrowserRouter>
       <div className="mobile-root">
         <div className="app-container">
-          <Routes>
-            <Route path="/" element={<Dashboard uploadedFiles={uploadedFiles} onFileUpload={handleFileUpload} isUploading={isUploading} />} />
-            <Route path="/vault" element={<Vault />} />
-            <Route path="/vault/view/:id" element={<VaultFileViewer />} />
-            <Route path="/portfolio" element={<PortfolioHome />} />
-            <Route path="/portfolio/create" element={<SelectPortfolioType />} />
-            <Route path="/portfolio/create/template" element={<TemplateBuilder />} />
-            <Route path="/portfolio/choose-template" element={<ChoosePortfolioTemplatePage />} />
-            <Route path="/portfolio/templates" element={<ChoosePortfolioTemplatePage />} />
-            <Route path="/portfolio/preview" element={<PortfolioFlowPreviewPage />} />
-            <Route path="/portfolio/view/:id" element={<PortfolioViewPage />} />
-            <Route path="/portfolio/edit/:id" element={<EditPortfolioPage />} />
-            <Route path="/portfolio/review" element={<ReviewPortfolio />} />
-            <Route path="/portfolio/share/:id" element={<PortfolioShare />} />
-            <Route path="/choose-portfolio-type" element={<ChoosePortfolioType />} />
-            <Route path="/choose-template" element={<ChooseTemplate />} />
-            <Route path="/add-documents-from-vault" element={<AddDocumentsFromVault />} />
-            <Route path="/portfolio-creation-draft" element={<PortfolioCreationDraft />} />
-            <Route path="/activity" element={<Activity />} />
-            <Route path="/profile" element={<Profile />} />
-            <Route path="/portfolio-preview" element={<PortfolioPreview />} />
-            <Route path="/p/:id" element={<PublicPortfolio />} />
-            <Route path="/select-from-vault" element={<SelectFromVault />} />
-          </Routes>
+          <div className="page">
+            <Routes>
+              <Route path="/" element={<Dashboard uploadedFiles={uploadedFiles} onFileUpload={handleFileUpload} isUploading={isUploading} />} />
+              <Route path="/vault" element={<Vault />} />
+              <Route path="/vault/view/:id" element={<VaultFileViewer />} />
+              <Route path="/portfolio" element={<PortfolioHome />} />
+              <Route path="/portfolio/create" element={<SelectPortfolioType />} />
+              <Route path="/portfolio/create/template" element={<TemplateBuilder />} />
+              <Route path="/portfolio/choose-template" element={<ChoosePortfolioTemplatePage />} />
+              <Route path="/portfolio/templates" element={<ChoosePortfolioTemplatePage />} />
+              <Route path="/portfolio/preview" element={<PortfolioFlowPreviewPage />} />
+              <Route path="/portfolio/view/:id" element={<PortfolioViewPage />} />
+              <Route path="/portfolio/edit/:id" element={<EditPortfolioPage />} />
+              <Route path="/portfolio/review" element={<ReviewPortfolio />} />
+              <Route path="/portfolio/share/:id" element={<PortfolioShare />} />
+              <Route path="/choose-portfolio-type" element={<ChoosePortfolioType />} />
+              <Route path="/choose-template" element={<ChooseTemplate />} />
+              <Route path="/add-documents-from-vault" element={<AddDocumentsFromVault />} />
+              <Route path="/portfolio-creation-draft" element={<PortfolioCreationDraft />} />
+              <Route path="/activity" element={<Activity />} />
+              <Route path="/profile" element={<Profile />} />
+              <Route path="/portfolio-preview" element={<PortfolioPreview />} />
+              <Route path="/p/:id" element={<PublicPortfolio />} />
+              <Route path="/select-from-vault" element={<SelectFromVault />} />
+            </Routes>
+          </div>
           <BottomNav />
         </div>
       </div>

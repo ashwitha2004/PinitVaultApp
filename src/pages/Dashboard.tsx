@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import Header from "../components/Header";
 import UploadSheet from "../components/UploadSheet";
+import PageContainer from "../components/layout/PageContainer";
 import type { UploadedFile } from "../types";
 
 interface Props {
@@ -85,15 +86,17 @@ const Dashboard: React.FC<Props> = ({ uploadedFiles, onFileUpload, isUploading }
     return () => window.removeEventListener("storage", handleStorageChange);
   }, []);
 
-  const saveFileToVault = (file: File, base64Data: string) => {
+  const saveFileToVault = (file: File) => {
     const existing = readVaultFiles();
     const newFile = {
       id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
       name: file.name,
       type: file.type,
       size: file.size,
-      data: base64Data,
+      data: null, // Store as null initially, will be converted to base64 only when needed
+      fileObject: file, // Store the File object reference
       uploadedAt: new Date().toISOString(),
+      isProtected: false, // Will be determined when preview is attempted
     };
 
     const updated = [newFile, ...existing];
@@ -112,29 +115,18 @@ const Dashboard: React.FC<Props> = ({ uploadedFiles, onFileUpload, isUploading }
         return;
       }
       
-      const reader = new FileReader();
-      
-      reader.onload = () => {
-        const base64 = reader.result;
-        if (typeof base64 !== "string") {
-          alert("Error reading file. Please try again.");
-          event.target.value = "";
-          return;
-        }
-
-        saveFileToVault(file, base64);
+      try {
+        // Save file directly without reading content
+        saveFileToVault(file);
         
         event.target.value = '';
         setIsUploadSheetOpen(false);
         alert("Uploaded successfully!");
-      };
-      
-      reader.onerror = () => {
-        alert('Error reading file. Please try again.');
+      } catch (error) {
+        console.error('Upload error:', error);
+        alert("Error uploading file. Please try again.");
         event.target.value = '';
-      };
-      
-      reader.readAsDataURL(file);
+      }
     } else if (file) {
       alert('Please select a valid PDF file');
       event.target.value = '';
@@ -151,29 +143,18 @@ const Dashboard: React.FC<Props> = ({ uploadedFiles, onFileUpload, isUploading }
         return;
       }
       
-      const reader = new FileReader();
-      
-      reader.onload = () => {
-        const base64 = reader.result;
-        if (typeof base64 !== "string") {
-          alert("Error reading file. Please try again.");
-          event.target.value = "";
-          return;
-        }
-
-        saveFileToVault(file, base64);
+      try {
+        // Save file directly without reading content
+        saveFileToVault(file);
         
         event.target.value = '';
         setIsUploadSheetOpen(false);
         alert("Uploaded successfully!");
-      };
-      
-      reader.onerror = () => {
-        alert('Error reading file. Please try again.');
+      } catch (error) {
+        console.error('Upload error:', error);
+        alert("Error uploading file. Please try again.");
         event.target.value = '';
-      };
-      
-      reader.readAsDataURL(file);
+      }
     } else if (file) {
       alert('Please select a valid image file');
       event.target.value = '';
@@ -190,29 +171,18 @@ const Dashboard: React.FC<Props> = ({ uploadedFiles, onFileUpload, isUploading }
         return;
       }
       
-      const reader = new FileReader();
-      
-      reader.onload = () => {
-        const base64 = reader.result;
-        if (typeof base64 !== "string") {
-          alert("Error reading file. Please try again.");
-          event.target.value = "";
-          return;
-        }
-
-        saveFileToVault(file, base64);
+      try {
+        // Save file directly without reading content
+        saveFileToVault(file);
         
         event.target.value = '';
         setIsUploadSheetOpen(false);
         alert("Uploaded successfully!");
-      };
-      
-      reader.onerror = () => {
-        alert('Error reading file. Please try again.');
+      } catch (error) {
+        console.error('Upload error:', error);
+        alert("Error uploading file. Please try again.");
         event.target.value = '';
-      };
-      
-      reader.readAsDataURL(file);
+      }
     } else if (file) {
       alert('Please select a valid video file');
       event.target.value = '';
@@ -229,29 +199,18 @@ const Dashboard: React.FC<Props> = ({ uploadedFiles, onFileUpload, isUploading }
         return;
       }
       
-      const reader = new FileReader();
-      
-      reader.onload = () => {
-        const base64 = reader.result;
-        if (typeof base64 !== "string") {
-          alert("Error reading file. Please try again.");
-          event.target.value = "";
-          return;
-        }
-
-        saveFileToVault(file, base64);
+      try {
+        // Save file directly without reading content
+        saveFileToVault(file);
         
         event.target.value = '';
         setIsUploadSheetOpen(false);
         alert("Uploaded successfully!");
-      };
-      
-      reader.onerror = () => {
-        alert('Error reading file. Please try again.');
+      } catch (error) {
+        console.error('Upload error:', error);
+        alert("Error uploading file. Please try again.");
         event.target.value = '';
-      };
-      
-      reader.readAsDataURL(file);
+      }
     } else {
       alert('Please select a valid file');
       event.target.value = '';
@@ -268,29 +227,18 @@ const Dashboard: React.FC<Props> = ({ uploadedFiles, onFileUpload, isUploading }
         return;
       }
       
-      const reader = new FileReader();
-      
-      reader.onload = () => {
-        const base64 = reader.result;
-        if (typeof base64 !== "string") {
-          alert("Error reading file. Please try again.");
-          event.target.value = "";
-          return;
-        }
-
-        saveFileToVault(file, base64);
+      try {
+        // Save file directly without reading content
+        saveFileToVault(file);
         
         event.target.value = '';
         setIsUploadSheetOpen(false);
         alert("Uploaded successfully!");
-      };
-      
-      reader.onerror = () => {
-        alert('Error reading file. Please try again.');
+      } catch (error) {
+        console.error('Upload error:', error);
+        alert("Error uploading file. Please try again.");
         event.target.value = '';
-      };
-      
-      reader.readAsDataURL(file);
+      }
     } else if (file) {
       alert('Please select a valid image file');
       event.target.value = '';
@@ -298,9 +246,10 @@ const Dashboard: React.FC<Props> = ({ uploadedFiles, onFileUpload, isUploading }
   };
 
   return (
-    <div className="bg-gradient-to-b from-blue-900 via-blue-800 to-black pb-20">
-      <div className="max-w-md mx-auto">
-        <Header name={profile?.name || "User"} showWelcome={true} avatar={profile?.avatar} />
+    <PageContainer>
+      <div className="bg-gradient-to-b from-blue-900 via-blue-800 to-black pb-20">
+        <div className="max-w-md mx-auto">
+          <Header name={profile?.name || "User"} showWelcome={true} avatar={profile?.avatar} />
 
         {/* Stats Cards */}
         <div className="px-4 -mt-6">
@@ -467,7 +416,8 @@ const Dashboard: React.FC<Props> = ({ uploadedFiles, onFileUpload, isUploading }
         onScanDocument={handleScanDocument}
         onCapturePhoto={handleCapturePhoto}
       />
-    </div>
+      </div>
+    </PageContainer>
   );
 };
 

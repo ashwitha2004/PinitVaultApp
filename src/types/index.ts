@@ -4,9 +4,11 @@ export interface UploadedFile {
   type: "pdf" | "image" | "video";
   size: number;
   createdAt: string;
-  data: string;
+  data: string | null; // Can be null for protected files
   mimeType: string;
   portfolio?: string;
+  fileObject?: File; // Store File object reference for protected files
+  isProtected?: boolean; // Track if file is password-protected
 }
 
 export interface PortfolioType {

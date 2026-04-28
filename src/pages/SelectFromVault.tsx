@@ -1,7 +1,12 @@
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
+import PageContainer from "../components/layout/PageContainer";
 
 const SelectFromVault = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const selectedType = location.state?.type;
+
+  console.log("Selected Type:", selectedType); // Debug logging
 
   const documents = JSON.parse(localStorage.getItem("vaultDocuments") || "[]");
 
@@ -36,8 +41,21 @@ const SelectFromVault = () => {
     // Save merged data
     localStorage.setItem("selectedDocuments", JSON.stringify(selectedDocuments));
     
-    // Navigate explicitly back to template builder
-    navigate("/portfolio/create/template");
+    // Prepare payload with file and type
+    const payload = { 
+      selectedFile: doc,
+      type: selectedType || field 
+    };
+    
+    // Store in sessionStorage as backup
+    sessionStorage.setItem("selectedDoc", JSON.stringify(payload));
+    
+    console.log("Navigating with payload:", payload);
+    
+    // Navigate explicitly back to template builder with type
+    navigate("/portfolio/create/template", { 
+      state: payload
+    });
   };
 
   // Map document name to specific field
@@ -70,29 +88,31 @@ const SelectFromVault = () => {
   };
 
   return (
-    <div className="p-4">
-      <h2 className="text-lg font-semibold mb-4">Select Document</h2>
+    <PageContainer>
+      <div className="vault-list">
+        <h2 className="text-lg font-semibold mb-4">Select Document</h2>
 
-      {documents.length === 0 ? (
-        <p className="text-gray-500">No documents in vault</p>
-      ) : (
-        documents.map((doc: any) => (
-          <div
-            key={doc.id}
-            className="p-3 mb-3 bg-gray-100 rounded-lg flex justify-between items-center"
-          >
-            <span>{doc.name}</span>
-
-            <button
-              onClick={() => handleSelect(doc)}
-              className="bg-blue-500 text-white px-3 py-1 rounded"
+        {documents.length === 0 ? (
+          <p className="text-gray-500">No documents in vault</p>
+        ) : (
+          documents.map((doc: any) => (
+            <div
+              key={doc.id}
+              className="p-3 mb-3 bg-gray-100 rounded-lg flex justify-between items-center"
             >
-              Select
-            </button>
-          </div>
-        ))
-      )}
-    </div>
+              <span>{doc.name}</span>
+
+              <button
+                onClick={() => handleSelect(doc)}
+                className="bg-blue-500 text-white px-3 py-1 rounded"
+              >
+                Select
+              </button>
+            </div>
+          ))
+        )}
+      </div>
+    </PageContainer>
   );
 };
 

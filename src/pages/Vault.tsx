@@ -2,14 +2,17 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { FileText, MoreHorizontal, Eye, Share2, Edit, Trash2, Image, Video, Search } from 'lucide-react';
 import Header from "../components/Header";
+import PageContainer from "../components/layout/PageContainer";
 
 interface VaultFile {
   id: string;
   name: string;
   type: string;
   size: number;
-  data: string;
+  data: string | null;
   uploadedAt: string;
+  isProtected?: boolean;
+  fileObject?: File | null;
 }
 
 const Vault = () => {
@@ -37,18 +40,27 @@ const Vault = () => {
 
     const name = typeof entry.name === "string" ? entry.name : "Untitled";
     const type = typeof entry.type === "string" ? entry.type : "";
-    const data = normalizeDataUrl(entry.data, type);
-    if (!data) return null;
+    
+    // Handle protected files - don't try to read data if it's null
+    let data = "";
+    if (entry.data !== null && entry.data !== undefined) {
+      data = normalizeDataUrl(entry.data, type);
+    } else if (entry.fileObject) {
+      // For protected files, we'll generate data on demand during preview
+      data = "";
+    }
 
     return {
       id: String(entry.id ?? `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`),
       name,
       type,
       size: Number(entry.size ?? 0),
-      data,
+      data: data || null,
       uploadedAt: typeof entry.uploadedAt === "string"
         ? entry.uploadedAt
         : (typeof entry.createdAt === "string" ? entry.createdAt : new Date().toISOString()),
+      isProtected: entry.isProtected || false,
+      fileObject: entry.fileObject || null,
     };
   };
 
@@ -148,10 +160,10 @@ const Vault = () => {
   };
 
   return (
-    <div className="page">
+    <PageContainer>
       <Header showWelcome={false} />
 
-      <div className="page-content">
+      <div>
         {/* Header */}
         <div className="flex items-center mb-6">
           <h1 className="text-2xl font-bold text-gray-900">Vault</h1>
@@ -191,9 +203,9 @@ const Vault = () => {
                   <div className="flex justify-between items-center min-w-0">
                     <div className="flex items-center gap-3 flex-1 min-w-0">
                       <div className={`w-12 h-12 ${iconColor} rounded-lg flex items-center justify-center flex-shrink-0 overflow-hidden`}>
-                        {file.type.includes("image") ? (
+                        {file.type.includes("image") && file.data ? (
                           <img src={file.data} alt={file.name} className="w-full h-full object-cover" />
-                        ) : file.type.includes("pdf") ? (
+                        ) : file.type.includes("pdf") && file.data && !file.isProtected ? (
                           <iframe src={file.data} title={file.name} className="w-full h-full border-0 pointer-events-none" />
                         ) : (
                           <Icon className="w-6 h-6 text-white" />
@@ -254,7 +266,7 @@ const Vault = () => {
           </div>
         )}
       </div>
-    </div>
+    </PageContainer>
   );
 };
 

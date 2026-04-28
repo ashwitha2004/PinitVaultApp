@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import PageContainer from '../components/layout/PageContainer';
 
 interface ProfileData {
   fullName: string;
@@ -131,7 +132,7 @@ const Profile = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <PageContainer>
       <div className="max-w-md mx-auto px-4 py-6">
         
         {/* Profile Section */}
@@ -522,7 +523,7 @@ const Profile = () => {
           </div>
         </div>
       </div>
-    </div>
+    </PageContainer>
   );
 };
 

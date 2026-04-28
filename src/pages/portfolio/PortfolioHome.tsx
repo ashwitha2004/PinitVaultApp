@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import PortfolioCard from '../../components/portfolio/PortfolioCard';
 import { Plus, FolderOpen, RefreshCw } from 'lucide-react';
@@ -20,6 +20,7 @@ export default function PortfolioHome() {
   const [showDeleteModal, setShowDeleteModal] = useState<string | null>(null);
 
   const USE_MOCK = false;
+  const hasFetched = useRef(false);
 
   const fetchPortfolios = async () => {
     try {
@@ -29,19 +30,33 @@ export default function PortfolioHome() {
 
       const res = await getAllPortfolios();
       console.log('FETCHED:', res.data);
-      setPortfolios(res.data || []);
-      console.log('LISTING DEBUG: Portfolios state updated');
+      
+      // Only update state if data actually changed
+      const newData = res.data || [];
+      if (JSON.stringify(portfolios) !== JSON.stringify(newData)) {
+        setPortfolios(newData);
+        console.log('LISTING DEBUG: Portfolios state updated');
+      }
     } catch (err) {
       console.error('FETCH ERROR:', err);
-      setPortfolios([]);
-      setError(null);
+      // Only update if not already in error state
+      if (!error) {
+        setPortfolios([]);
+        setError(null);
+      }
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    console.log('LISTING DEBUG: useEffect triggered, refresh state:', location.state?.refresh);
+    console.log('LISTING DEBUG: useEffect triggered');
+    
+    // Prevent duplicate fetch calls
+    if (hasFetched.current) {
+      console.log('LISTING DEBUG: Already fetched, skipping');
+      return;
+    }
     
     if (USE_MOCK) {
       setPortfolios([
@@ -53,25 +68,27 @@ export default function PortfolioHome() {
         }
       ]);
       setLoading(false);
+      hasFetched.current = true;
       return;
     }
 
     fetchPortfolios();
-  }, [location.state?.refresh]); // Trigger on refresh state from navigation
+    hasFetched.current = true;
+  }, []); // Empty dependency array - run only once
 
-  const handleView = (id: string) => {
+  const handleView = useCallback((id: string) => {
     navigate(`/portfolio/view/${id}`);
-  };
+  }, [navigate]);
 
-  const handleEdit = (id: string) => {
+  const handleEdit = useCallback((id: string) => {
     navigate(`/portfolio/edit/${id}`);
-  };
+  }, [navigate]);
 
-  const handleShare = (id: string) => {
+  const handleShare = useCallback((id: string) => {
     navigate(`/portfolio/share/${id}`);
-  };
+  }, [navigate]);
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = useCallback(async (id: string) => {
     try {
       const res = await deletePortfolio(id);
       console.log('DELETE RESPONSE:', res);
@@ -83,11 +100,11 @@ export default function PortfolioHome() {
       console.error('Failed to delete portfolio:', err);
       setError('Failed to delete portfolio');
     }
-  };
+  }, []);
 
-  const handleCreate = () => {
+  const handleCreate = useCallback(() => {
     navigate('/portfolio/create');
-  };
+  }, [navigate]);
 
   // Skeleton loader component
   const SkeletonCard = () => (
