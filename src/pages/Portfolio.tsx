@@ -92,8 +92,10 @@ const Portfolio: React.FC = () => {
               <PortfolioCard
                 key={portfolio.id}
                 portfolio={portfolio}
-                onTrack={() => handleTrack(portfolio)}
+                onView={() => handleTrack(portfolio)}
+                onEdit={() => handleTrack(portfolio)}
                 onShare={() => handleShare(portfolio)}
+                onDelete={() => console.log('Delete not implemented')}
               />
             ))
           ) : (

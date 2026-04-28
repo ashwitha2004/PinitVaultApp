@@ -8,6 +8,9 @@ interface SelectedDocument {
   name: string;
   type: string;
   field: string;
+  data: string | null;
+  size: number;
+  uploadedAt: string;
 }
 
 interface PortfolioData {
@@ -125,23 +128,36 @@ const ReviewPortfolio: React.FC = () => {
     navigate('/portfolio/create/template');
   };
 
-  const handleView = (doc: any) => {
-    if (!doc?.url) {
-      console.error('No URL available for viewing');
+  const handleView = (doc: SelectedDocument) => {
+    if (!doc?.data) {
+      console.error('No data available for viewing');
       return;
     }
-    window.open(doc.url, "_blank");
+    try {
+      const blob = new Blob([atob(doc.data)], { type: doc.type });
+      const url = URL.createObjectURL(blob);
+      window.open(url, "_blank");
+    } catch (error) {
+      console.error('Error creating blob URL:', error);
+    }
   };
 
-  const handleDownload = (doc: any) => {
-    if (!doc?.url) {
-      console.error('No URL available for download');
+  const handleDownload = (doc: SelectedDocument) => {
+    if (!doc?.data) {
+      console.error('No data available for download');
       return;
     }
-    const link = document.createElement("a");
-    link.href = doc.url;
-    link.download = doc.name || 'document';
-    link.click();
+    try {
+      const blob = new Blob([atob(doc.data)], { type: doc.type });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = doc.name || 'document';
+      link.click();
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error creating download link:', error);
+    }
   };
 
   const handleSubmit = async () => {
@@ -332,7 +348,7 @@ const ReviewPortfolio: React.FC = () => {
                       <div className="text-xs text-gray-500 capitalize">{key.replace('_', ' ')}</div>
                     </div>
                     <div className="flex items-center gap-2">
-                      {doc.url && (
+                      {doc.data && (
                         <>
                           <button
                             onClick={() => handleView(doc)}

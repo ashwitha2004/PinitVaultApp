@@ -324,8 +324,8 @@ const TemplateBuilder = memo(({ mode = 'create', initialData, onSave }: Template
   }, []);
 
   // Helper function to transform selectedDocs to sections structure
-  const buildSections = (selectedDocs: any) => {
-    const sections = [];
+  const buildSections = (selectedDocs: Record<string, any>) => {
+    const sections: { title: string; documents: any[] }[] = [];
 
     const mapping = {
       personalProofs: ["resume", "aadhaar", "aadhar", "passport", "photo"],
@@ -454,7 +454,7 @@ const TemplateBuilder = memo(({ mode = 'create', initialData, onSave }: Template
           };
           
           const fieldName = itemToFieldMap[item] || item.toLowerCase().replace(/\s+/g, '_');
-          const selectedDoc = selectedDocs[fieldName];
+          const selectedDoc = (selectedDocs as Record<string, any>)[fieldName];
           
           return (
             <DocumentItem

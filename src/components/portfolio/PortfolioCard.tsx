@@ -4,8 +4,8 @@ import PortfolioMenu from './PortfolioMenu';
 interface Portfolio {
   id: string;
   name: string;
-  type: "Personal" | "Masters" | "Academic" | "Professional";
-  status: "Active" | "Secured" | "Draft";
+  type: "placement" | "masters" | "professional";
+  status: "active" | "shared" | "draft";
 }
 
 interface Props {
@@ -21,11 +21,11 @@ const PortfolioCard: React.FC<Props> = ({ portfolio, onView, onEdit, onShare, on
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'Active':
+      case 'active':
         return 'bg-green-100 text-green-800';
-      case 'Secured':
+      case 'shared':
         return 'bg-blue-100 text-blue-800';
-      case 'Draft':
+      case 'draft':
         return 'bg-gray-100 text-gray-800';
       default:
         return 'bg-gray-100 text-gray-800';
@@ -34,13 +34,11 @@ const PortfolioCard: React.FC<Props> = ({ portfolio, onView, onEdit, onShare, on
 
   const getTypeColor = (type: string) => {
     switch (type) {
-      case 'Personal':
+      case 'placement':
         return 'bg-purple-100 text-purple-800';
-      case 'Masters':
+      case 'masters':
         return 'bg-indigo-100 text-indigo-800';
-      case 'Academic':
-        return 'bg-yellow-100 text-yellow-800';
-      case 'Professional':
+      case 'professional':
         return 'bg-orange-100 text-orange-800';
       default:
         return 'bg-gray-100 text-gray-800';

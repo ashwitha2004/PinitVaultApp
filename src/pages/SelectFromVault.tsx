@@ -12,7 +12,7 @@ const SelectFromVault = () => {
 
   const documents = JSON.parse(localStorage.getItem("vaultDocuments") || "[]");
 
-  const handleSelect = (doc: any) => {
+  const handleSelect = (doc: any, type?: string) => {
     // Safe data validation
     if (!doc || !doc.id || !doc.name) {
       console.error('Invalid document selected');

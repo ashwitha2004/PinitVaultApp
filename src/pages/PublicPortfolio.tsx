@@ -36,7 +36,8 @@ const PublicPortfolio = () => {
       "30d": 2592000000
     };
 
-    if (now - created > limits[shareConfig.expiry]) {
+    const expiryLimit = limits[shareConfig.expiry as keyof typeof limits];
+    if (expiryLimit && now - created > expiryLimit) {
       setError("Link expired");
       setLoading(false);
       return;

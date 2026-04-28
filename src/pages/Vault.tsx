@@ -132,8 +132,12 @@ const Vault = () => {
   };
 
   const handleShare = (file: VaultFile) => {
-    navigator.clipboard.writeText(file.data);
-    alert("File link copied");
+    if (file.data) {
+      navigator.clipboard.writeText(file.data);
+      alert("File link copied");
+    } else {
+      alert("No file data available to copy");
+    }
     setOpenMenuId(null);
   };
 

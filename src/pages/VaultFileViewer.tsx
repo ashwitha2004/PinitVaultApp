@@ -84,6 +84,10 @@ const VaultFileViewer = () => {
     if (!file) return;
     
     try {
+      if (!file.data) {
+        alert("No file data available for download");
+        return;
+      }
       const link = document.createElement('a');
       link.href = file.data;
       link.download = file.name;
@@ -186,7 +190,7 @@ const VaultFileViewer = () => {
       return (
         <div className="flex items-center justify-center w-full h-full">
           <video
-            src={file.data}
+            src={file.data || undefined}
             controls
             className="max-w-full max-h-full"
             style={{ maxHeight: '80vh' }}

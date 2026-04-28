@@ -7,8 +7,8 @@ import { getAllPortfolios, deletePortfolio } from '../../services/portfolioServi
 interface Portfolio {
   id: string;
   name: string;
-  type: "Personal" | "Masters" | "Academic" | "Professional";
-  status: "Active" | "Secured" | "Draft";
+  type: "placement" | "masters" | "professional";
+  status: "active" | "shared" | "draft";
 }
 
 export default function PortfolioHome() {
@@ -63,8 +63,8 @@ export default function PortfolioHome() {
         {
           id: "1",
           name: "My Portfolio",
-          type: "Personal",
-          status: "Active"
+          type: "professional",
+          status: "active"
         }
       ]);
       setLoading(false);
