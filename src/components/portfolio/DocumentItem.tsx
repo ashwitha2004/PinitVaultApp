@@ -13,7 +13,7 @@ const DocumentItem: React.FC<DocumentItemProps> = ({ title, value, onSelect, upl
       <span className="text-sm text-gray-700">{title}</span>
       <div className="flex items-center gap-2">
         {uploaded ? (
-          <span className="text-green-600 text-sm">Uploaded</span>
+          <span className="text-green-600 text-sm">Uploaded ✅</span>
         ) : (
           <span className="text-gray-400 text-sm">Not Uploaded</span>
         )}

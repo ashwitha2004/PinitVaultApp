@@ -9,14 +9,14 @@ export const createPortfolio = async (data) => {
     id: Date.now().toString(),
     name: data?.name || "My Portfolio",
     createdAt: new Date().toISOString(),
-    ...data
+    ...data,
+    documents: data.documents || {}
   };
 
   const updated = [...existing, newPortfolio];
 
   localStorage.setItem("portfolios", JSON.stringify(updated));
-
-  console.log("MOCK CREATE: Portfolio saved:", newPortfolio);
+  console.log("MOCK CREATE: Portfolio saved with documents:", newPortfolio);
   return { data: newPortfolio };
 };
 

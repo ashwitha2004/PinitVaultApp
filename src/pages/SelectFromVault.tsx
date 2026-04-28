@@ -1,10 +1,12 @@
 import { useNavigate, useLocation } from "react-router-dom";
 import PageContainer from "../components/layout/PageContainer";
+import { useDocument } from "../context/DocumentContext";
 
 const SelectFromVault = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const selectedType = location.state?.type;
+  const { setSelectedDoc } = useDocument();
 
   console.log("Selected Type:", selectedType); // Debug logging
 
@@ -17,45 +19,19 @@ const SelectFromVault = () => {
       return;
     }
 
-    // Map document to specific field
-    const field = mapDocumentToField(doc.name);
+    // Get document type from navigation state
+    const documentType = selectedType || mapDocumentToField(doc.name);
     
-    // Read existing selected documents
-    const existingData = localStorage.getItem("selectedDocuments");
-    let selectedDocuments = existingData ? JSON.parse(existingData) : {};
+    console.log("SELECTING DOCUMENT:", { file: doc, type: documentType }); // Debug logging
     
-    // Initialize empty object if needed
-    if (!selectedDocuments || typeof selectedDocuments !== 'object') {
-      selectedDocuments = {};
-    }
-    
-    // Update only the specific field (merge logic)
-    selectedDocuments[field] = {
-      id: doc.id,
-      name: doc.name,
-      type: doc.type || 'pdf',
-      field: field,
-      originalDoc: doc
-    };
-    
-    // Save merged data
-    localStorage.setItem("selectedDocuments", JSON.stringify(selectedDocuments));
-    
-    // Prepare payload with file and type
-    const payload = { 
-      selectedFile: doc,
-      type: selectedType || field 
-    };
-    
-    // Store in sessionStorage as backup
-    sessionStorage.setItem("selectedDoc", JSON.stringify(payload));
-    
-    console.log("Navigating with payload:", payload);
-    
-    // Navigate explicitly back to template builder with type
-    navigate("/portfolio/create/template", { 
-      state: payload
+    // Set selected document in global state
+    setSelectedDoc({ 
+      file: doc, 
+      type: documentType 
     });
+    
+    // Navigate back to template builder
+    navigate("/portfolio/create/template");
   };
 
   // Map document name to specific field
@@ -103,7 +79,7 @@ const SelectFromVault = () => {
               <span>{doc.name}</span>
 
               <button
-                onClick={() => handleSelect(doc)}
+                onClick={() => handleSelect(doc, selectedType)}
                 className="bg-blue-500 text-white px-3 py-1 rounded"
               >
                 Select

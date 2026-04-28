@@ -38,21 +38,27 @@ const ReviewPortfolio: React.FC = () => {
   // Load data from localStorage and navigation state
   useEffect(() => {
     try {
-      // Try to get data from navigation state first
-      const stateData = location.state as PortfolioData;
+      const storedData = localStorage.getItem("portfolioData");
+      const stateData = location.state as { personalInfo?: any; documents?: any };
       
-      // Load selected documents from localStorage
-      const storedDocs = localStorage.getItem("selectedDocuments");
-      const selectedDocs = storedDocs ? JSON.parse(storedDocs) : {};
+      let data: any;
       
-      setSelectedDocuments(selectedDocs);
-      
-      // Use navigation state or create default structure
-      if (stateData) {
-        setPortfolioData(stateData);
+      if (storedData) {
+        data = JSON.parse(storedData);
+      } else if (stateData?.personalInfo || stateData?.documents) {
+        data = {
+          profile: stateData.personalInfo || {
+            fullName: '',
+            email: '',
+            phone: '',
+            role: '',
+            summary: ''
+          },
+          selectedDocs: stateData.documents || {}
+        };
       } else {
-        // Create default structure with selected documents
-        const defaultData: PortfolioData = {
+        // Fallback to empty data structure
+        data = {
           profile: {
             fullName: '',
             email: '',
@@ -60,35 +66,56 @@ const ReviewPortfolio: React.FC = () => {
             role: '',
             summary: ''
           },
-          documents: {
-            personalProofs: [],
-            academic: [],
-            internships: [],
-            certifications: [],
-            exams: [],
-            others: []
-          }
+          selectedDocs: {}
         };
-        
-        // Map selected documents to portfolio structure
-        Object.values(selectedDocs).forEach((doc: SelectedDocument) => {
-          if (doc.field.includes('resume') || doc.field.includes('aadhar') || doc.field.includes('passport') || doc.field.includes('photo')) {
-            defaultData.documents.personalProofs.push(doc);
-          } else if (doc.field.includes('certificate') || doc.field.includes('degree') || doc.field.includes('scorecard')) {
-            defaultData.documents.academic.push(doc);
-          } else if (doc.field.includes('internship') || doc.field.includes('offer') || doc.field.includes('completion')) {
-            defaultData.documents.internships.push(doc);
-          } else if (doc.field.includes('course') || doc.field.includes('workshop') || doc.field.includes('hackathon')) {
-            defaultData.documents.certifications.push(doc);
-          } else {
-            defaultData.documents.others.push(doc);
-          }
-        });
-        
-        setPortfolioData(defaultData);
       }
+
+      console.log("ReviewPortfolio - Loaded data:", data);
+      
+      // Transform selectedDocs into the expected PortfolioData structure
+      const portfolioDataFormatted: PortfolioData = {
+        profile: data.profile || {
+          fullName: '',
+          email: '',
+          phone: '',
+          role: '',
+          summary: ''
+        },
+        documents: {
+          personalProofs: [],
+          academic: [],
+          internships: [],
+          certifications: [],
+          exams: [],
+          others: []
+        }
+      };
+
+      setPortfolioData(portfolioDataFormatted);
+      setSelectedDocuments(data.selectedDocs || {});
+      
+      // Store data in localStorage for persistence
+      localStorage.setItem("portfolioData", JSON.stringify(data));
     } catch (error) {
       console.error('Error loading portfolio data:', error);
+      // Set fallback data on error
+      setPortfolioData({
+        profile: {
+          fullName: '',
+          email: '',
+          phone: '',
+          role: '',
+          summary: ''
+        },
+        documents: {
+          personalProofs: [],
+          academic: [],
+          internships: [],
+          certifications: [],
+          exams: [],
+          others: []
+        }
+      });
     } finally {
       setLoading(false);
     }
@@ -102,13 +129,18 @@ const ReviewPortfolio: React.FC = () => {
     try {
       console.log("Submitting portfolio...");
       
+      if (!portfolioData) {
+        alert("No portfolio data available");
+        return;
+      }
+      
       // Extract document IDs from selected documents
       const documentIds = Object.values(selectedDocuments).map(doc => doc.id).filter(Boolean);
       
       // Create portfolio data for mock service
       const data = {
-        name: portfolioData.profile.fullName || `${portfolioData.profile.role || 'Personal'} Portfolio`,
-        type: portfolioData.profile.role || 'Personal',
+        name: portfolioData.profile?.fullName || `${portfolioData.profile?.role || 'Personal'} Portfolio`,
+        type: portfolioData.profile?.role || 'Personal',
         profile: portfolioData.profile,
         documentIds: documentIds,
         status: 'Active',
@@ -120,6 +152,7 @@ const ReviewPortfolio: React.FC = () => {
       
       // Clear selected documents after successful submission
       localStorage.removeItem("selectedDocuments");
+      localStorage.removeItem("portfolioData");
       
       alert("Portfolio created successfully!");
       navigate("/portfolio", { state: { refresh: true } });
@@ -133,12 +166,10 @@ const ReviewPortfolio: React.FC = () => {
   const DocumentSection = ({ 
     title, 
     icon, 
-    documents, 
     color 
   }: { 
     title: string; 
     icon: React.ReactNode; 
-    documents: SelectedDocument[]; 
     color: string;
   }) => (
     <div className="bg-white rounded-xl shadow-sm p-4 mb-4">
@@ -149,14 +180,14 @@ const ReviewPortfolio: React.FC = () => {
         <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
       </div>
       
-      {documents.length === 0 ? (
+      {Object.keys(selectedDocuments).length === 0 ? (
         <p className="text-gray-500 text-sm">No documents selected</p>
       ) : (
         <div className="space-y-2">
-          {documents.map((doc) => (
-            <div key={doc.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+          {Object.entries(selectedDocuments).map(([key, doc]) => (
+            <div key={key} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
               <FileText className="w-4 h-4 text-gray-600" />
-              <span className="text-sm text-gray-700 flex-1">{doc.name}</span>
+              <span className="text-sm text-gray-700 flex-1">{doc.name || (typeof doc === 'string' ? doc : 'Unknown file')}</span>
               <CheckCircle className="w-4 h-4 text-green-500" />
             </div>
           ))}
@@ -233,68 +264,85 @@ const ReviewPortfolio: React.FC = () => {
             </div>
             
             <div className="space-y-2">
-              {portfolioData.profile.fullName && (
+              {portfolioData?.profile?.fullName && (
                 <div className="flex justify-between py-2 border-b border-gray-100">
                   <span className="text-sm text-gray-600">Name</span>
                   <span className="text-sm font-medium text-gray-900">{portfolioData.profile.fullName}</span>
                 </div>
               )}
-              {portfolioData.profile.email && (
+              {portfolioData?.profile?.email && (
                 <div className="flex justify-between py-2 border-b border-gray-100">
                   <span className="text-sm text-gray-600">Email</span>
                   <span className="text-sm font-medium text-gray-900">{portfolioData.profile.email}</span>
                 </div>
               )}
-              {portfolioData.profile.phone && (
+              {portfolioData?.profile?.phone && (
                 <div className="flex justify-between py-2 border-b border-gray-100">
                   <span className="text-sm text-gray-600">Phone</span>
                   <span className="text-sm font-medium text-gray-900">{portfolioData.profile.phone}</span>
                 </div>
               )}
-              {portfolioData.profile.role && (
+              {portfolioData?.profile?.role && (
                 <div className="flex justify-between py-2 border-b border-gray-100">
                   <span className="text-sm text-gray-600">Role</span>
                   <span className="text-sm font-medium text-gray-900">{portfolioData.profile.role}</span>
                 </div>
               )}
+              {portfolioData?.profile?.summary && (
+                <div className="flex justify-between py-2 border-b border-gray-100">
+                  <span className="text-sm text-gray-600">Summary</span>
+                  <span className="text-sm font-medium text-gray-900">{portfolioData.profile.summary}</span>
+                </div>
+              )}
+              
+              {!portfolioData?.profile?.fullName && !portfolioData?.profile?.email && !portfolioData?.profile?.phone && !portfolioData?.profile?.role && !portfolioData?.profile?.summary && (
+                <p className="text-gray-500 text-sm text-center py-4">No personal information provided</p>
+              )}
             </div>
           </div>
 
-          {/* Document Sections */}
-          <DocumentSection
-            title="Personal Proofs"
-            icon={<User className="w-5 h-5 text-blue-600" />}
-            documents={portfolioData.documents.personalProofs}
-            color="bg-blue-100"
-          />
-
-          <DocumentSection
-            title="Academic Documents"
-            icon={<BookOpen className="w-5 h-5 text-green-600" />}
-            documents={portfolioData.documents.academic}
-            color="bg-green-100"
-          />
-
-          <DocumentSection
-            title="Internships"
-            icon={<Briefcase className="w-5 h-5 text-purple-600" />}
-            documents={portfolioData.documents.internships}
-            color="bg-purple-100"
-          />
-
-          <DocumentSection
-            title="Certifications"
-            icon={<Award className="w-5 h-5 text-orange-600" />}
-            documents={portfolioData.documents.certifications}
-            color="bg-orange-100"
-          />
-
-          <DocumentSection
-            title="Other Documents"
-            icon={<FileText className="w-5 h-5 text-gray-600" />}
-            documents={portfolioData.documents.others}
-            color="bg-gray-100"
-          />
+          {/* Document Sections - Show all uploaded documents */}
+          {Object.keys(selectedDocuments).length > 0 && (
+            <div className="bg-white rounded-xl shadow-sm p-4 mb-4">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="p-2 rounded-lg bg-blue-100">
+                  <FileText className="w-5 h-5 text-blue-600" />
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900">Uploaded Documents</h3>
+              </div>
+              
+              <div className="space-y-2">
+                {Object.entries(selectedDocuments).map(([key, doc]) => (
+                  <div key={key} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                    <FileText className="w-4 h-4 text-gray-600" />
+                    <div className="flex-1">
+                      <span className="text-sm font-medium text-gray-900">
+                        {doc.name || (typeof doc === 'string' ? doc : 'Unknown file')}
+                      </span>
+                      <div className="text-xs text-gray-500 capitalize">{key.replace('_', ' ')}</div>
+                    </div>
+                    <CheckCircle className="w-4 h-4 text-green-500" />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          
+          {Object.keys(selectedDocuments).length === 0 && (
+            <div className="bg-white rounded-xl shadow-sm p-4 mb-4">
+              <div className="text-center py-8">
+                <FileText className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">No Documents Uploaded</h3>
+                <p className="text-gray-600 mb-4">Please upload documents to complete your portfolio</p>
+                <button
+                  onClick={handleBack}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  Upload Documents
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* Submit Button */}
           <div className="mt-6 mb-4">

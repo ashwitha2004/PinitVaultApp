@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { ArrowLeft, Plus } from 'lucide-react';
 import DocumentItem from '../../components/portfolio/DocumentItem';
 import PersonalInfoForm from '../../components/portfolio/PersonalInfoForm';
+import { useDocument } from '../../context/DocumentContext';
 
 interface DocumentItem {
   documentId: string;
@@ -26,7 +27,22 @@ interface PortfolioData {
     exams: DocumentItem[];
     others: DocumentItem[];
   };
-  selectedDocuments?: any;
+  selectedDocuments: {
+    resume?: any;
+    aadhaar?: any;
+    passport?: any;
+    photo?: any;
+    '10th_certificate'?: any;
+    '12th_certificate'?: any;
+    degree_certificate?: any;
+    semester_scorecards?: any;
+    offer_letter?: any;
+    completion_certificate?: any;
+    courses?: any;
+    workshops?: any;
+    hackathons?: any;
+    other?: any;
+  };
 }
 
 interface TemplateBuilderProps {
@@ -38,161 +54,11 @@ interface TemplateBuilderProps {
 const TemplateBuilder = memo(({ mode = 'create', initialData, onSave }: TemplateBuilderProps) => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { selectedDoc, clearSelectedDoc } = useDocument();
   const [type, setType] = useState<string>('masters');
   const [showDocumentModal, setShowDocumentModal] = useState<string | null>(null);
   const [selectedSection, setSelectedSection] = useState<string>('');
-  const [selectedDocs, setSelectedDocs] = useState<any>({});
-
-  // Initialize with initialData in edit mode
-  useEffect(() => {
-    if (mode === 'edit' && initialData) {
-      console.log("EDIT MODE: Initializing with initialData", initialData);
-      setType(initialData.type || 'masters');
-      setSelectedDocs(initialData.selectedDocuments || {});
-    } else {
-      // Extract type from URL for create mode
-      const params = new URLSearchParams(location.search);
-      const urlType = params.get('type');
-      if (urlType) {
-        setType(urlType);
-      }
-    }
-  }, [mode, initialData, location.search]);
-
-  // Handle selected documents from vault
-  useEffect(() => {
-    try {
-      // Debug: Check location.state
-      console.log("LOCATION STATE:", location.state);
-      
-      // Use sessionStorage fallback for React Router state clearing
-      const state = location.state || JSON.parse(sessionStorage.getItem("selectedDoc") || "null");
-      
-      // Check for selectedFile and type from navigation state
-      if (state?.selectedFile && state?.type) {
-        const { selectedFile, type } = state;
-        
-        console.log("Processing selected file:", selectedFile, "type:", type);
-        
-        // Map type to correct document category
-        const categoryMapping: { [key: string]: 'personalProofs' | 'academic' | 'internships' | 'certifications' | 'exams' | 'others' } = {
-          'resume': 'personalProofs',
-          'aadhaar': 'personalProofs', 
-          'passport': 'personalProofs',
-          'photo': 'personalProofs',
-          '10th_certificate': 'academic',
-          '12th_certificate': 'academic',
-          'degree_certificate': 'academic',
-          'semester_scorecards': 'academic',
-          'offer_letter': 'internships',
-          'completion_certificate': 'internships',
-          'courses': 'certifications',
-          'workshops': 'certifications',
-          'hackathons': 'certifications',
-          'other': 'others'
-        };
-        
-        const category = categoryMapping[type] || 'others';
-        
-        // Create document item with correct structure
-        const documentItem = {
-          documentId: selectedFile.id,
-          name: selectedFile.name
-        };
-        
-        // Update portfolio data with correct category
-        setPortfolioData(prev => ({
-          ...prev,
-          documents: {
-            ...prev.documents,
-            [category]: [...prev.documents[category], documentItem]
-          }
-        }));
-        
-        // Clear sessionStorage to prevent re-processing
-        sessionStorage.removeItem("selectedDoc");
-        
-        return;
-      }
-      
-      const stored = localStorage.getItem("selectedDocuments");
-      
-      if (stored) {
-        const selectedDocuments = JSON.parse(stored);
-        
-        // Validate structure
-        if (!selectedDocuments || typeof selectedDocuments !== 'object') {
-          console.error('Invalid selectedDocuments structure');
-          return;
-        }
-        
-        // Map field to category and section
-        const fieldMapping = {
-          // Personal Proofs
-          'resume': { category: 'personalProofs', section: 'personalProofs' },
-          'aadhar': { category: 'personalProofs', section: 'personalProofs' },
-          'passport': { category: 'personalProofs', section: 'personalProofs' },
-          'photo': { category: 'personalProofs', section: 'personalProofs' },
-          // Academic
-          '10th_certificate': { category: 'academic', section: 'academic' },
-          '12th_certificate': { category: 'academic', section: 'academic' },
-          'degree_certificate': { category: 'academic', section: 'academic' },
-          'semester_scorecards': { category: 'academic', section: 'academic' },
-          // Internships
-          'offer_letter': { category: 'internships', section: 'internships' },
-          'completion_certificate': { category: 'internships', section: 'internships' },
-          // Certifications
-          'courses': { category: 'certifications', section: 'certifications' },
-          'workshops': { category: 'certifications', section: 'certifications' },
-          'hackathons': { category: 'certifications', section: 'certifications' },
-          // Default
-          'other': { category: 'others', section: 'others' }
-        };
-        
-        // Process all selected documents
-        const updatedSelectedDocs: any = {};
-        const updatedPortfolioDocs: any = {
-          personalProofs: [],
-          academic: [],
-          internships: [],
-          certifications: [],
-          exams: [],
-          others: []
-        };
-        
-        Object.entries(selectedDocuments).forEach(([field, doc]: [string, any]) => {
-          if (!doc || !doc.id || !doc.name) {
-            console.error('Invalid document in field:', field);
-            return;
-          }
-          
-          const mapping = fieldMapping[field as keyof typeof fieldMapping] || fieldMapping.other;
-          
-          // Update selected docs state for this field
-          updatedSelectedDocs[field] = doc;
-          
-          // Add to portfolio data
-          const portfolioDoc = {
-            documentId: doc.id,
-            name: doc.name
-          };
-          
-          updatedPortfolioDocs[mapping.category].push(portfolioDoc);
-        });
-        
-        // Update states with all documents
-        setSelectedDocs(updatedSelectedDocs);
-        setPortfolioData(prev => ({
-          ...prev,
-          documents: updatedPortfolioDocs
-        }));
-        
-        console.log('All documents processed successfully:', Object.keys(updatedSelectedDocs));
-      }
-    } catch (error) {
-      console.error('Error processing selected documents:', error);
-    }
-  }, []);
+  const [selectedDocs, setSelectedDocs] = useState({});
 
   const [portfolioData, setPortfolioData] = useState<PortfolioData>({
     type,
@@ -210,8 +76,159 @@ const TemplateBuilder = memo(({ mode = 'create', initialData, onSave }: Template
       certifications: [],
       exams: [],
       others: []
-    }
+    },
+    selectedDocuments: {}
   });
+
+  // Initialize with initialData in edit mode
+  useEffect(() => {
+    if (mode === 'edit' && initialData) {
+      console.log("EDIT MODE: Initializing with initialData", initialData);
+      setType(initialData.type || 'masters');
+      // FIX: Use merge pattern instead of overwriting
+      setSelectedDocs(prev => ({
+        ...prev,
+        ...(initialData.selectedDocuments || {})
+      }));
+    } else {
+      // Load saved data from localStorage for create mode
+      const savedData = localStorage.getItem("portfolioBuilderData");
+      if (savedData) {
+        try {
+          const parsed = JSON.parse(savedData);
+          console.log("Loading saved data:", parsed);
+          
+          // Load saved profile data
+          if (parsed.profile) {
+            setPortfolioData(prev => ({
+              ...prev,
+              profile: { ...prev.profile, ...parsed.profile }
+            }));
+          }
+          
+          // Load saved selected documents
+          if (parsed.selectedDocs) {
+            // FIX: Use merge pattern instead of overwriting
+            setSelectedDocs(prev => ({
+              ...prev,
+              ...parsed.selectedDocs
+            }));
+            console.log("Loaded saved selectedDocs:", parsed.selectedDocs);
+          }
+          
+          // Load saved type
+          if (parsed.type) {
+            setType(parsed.type);
+          }
+        } catch (error) {
+          console.error("Error loading saved data:", error);
+        }
+      }
+      
+      // Extract type from URL for create mode
+      const params = new URLSearchParams(location.search);
+      const urlType = params.get('type');
+      if (urlType) {
+        setType(urlType);
+      }
+    }
+  }, [mode, initialData, location.search]);
+  
+  // Save state to localStorage on changes
+  useEffect(() => {
+    // Only save in create mode, not edit mode
+    if (mode === 'create') {
+      const dataToSave = {
+        profile: portfolioData.profile,
+        selectedDocs: selectedDocs,
+        type: type
+      };
+      console.log("Saving data to localStorage:", dataToSave);
+      localStorage.setItem("portfolioBuilderData", JSON.stringify(dataToSave));
+    }
+  }, [portfolioData.profile, selectedDocs, type, mode]);
+
+  // Debug useEffect to track selectedDocs changes
+  useEffect(() => {
+    console.log("SELECTED DOCS STATE:", selectedDocs);
+    console.log("SELECTED DOCS KEYS:", Object.keys(selectedDocs));
+    console.log("SELECTED DOCS VALUES:", Object.values(selectedDocs));
+  }, [selectedDocs]);
+
+  // Handle document selection from vault
+  const handleSelectDocument = useCallback((fieldName: string, item: string) => {
+    console.log("Selected:", fieldName, item); // Debug logging
+    
+    setSelectedDocs(prev => ({
+      ...prev,
+      [fieldName]: item
+    }));
+  }, []);
+
+  // Handle selected documents from vault using global state
+  useEffect(() => {
+    if (selectedDoc?.file && selectedDoc?.type) {
+      console.log("SELECTED DOC:", selectedDoc); // Debug logging
+      
+      const { file, type } = selectedDoc;
+      
+      // Debug: Check what type we're getting
+      console.log("DEBUG - Type received:", type);
+      console.log("DEBUG - File received:", file);
+      
+      // Map type to correct document category
+      const categoryMapping: { [key: string]: 'personalProofs' | 'academic' | 'internships' | 'certifications' | 'exams' | 'others' } = {
+        'resume': 'personalProofs',
+        'aadhaar': 'personalProofs', 
+        'aadhar': 'personalProofs',
+        'passport': 'personalProofs',
+        'photo': 'personalProofs',
+        '10th_certificate': 'academic',
+        '12th_certificate': 'academic',
+        'degree_certificate': 'academic',
+        'semester_scorecards': 'academic',
+        'offer_letter': 'internships',
+        'completion_certificate': 'internships',
+        'work_proof': 'internships',
+        'courses': 'certifications',
+        'workshops': 'certifications',
+        'hackathons': 'certifications',
+        'other': 'others'
+      };
+      
+      const category = categoryMapping[type] || 'others';
+      
+      console.log("DEBUG - Category:", category);
+      
+      // Create document item with correct structure
+      const documentItem = {
+        documentId: file.id,
+        name: file.name
+      };
+      
+      // Update portfolio data with correct category
+      setPortfolioData(prev => ({
+        ...prev,
+        documents: {
+          ...prev.documents,
+          [category]: [...prev.documents[category], documentItem]
+        }
+      }));
+      
+      // Update selectedDocs state - CRITICAL FIX: Use the original type as key
+      setSelectedDocs(prev => {
+        const updated = {
+          ...prev,
+          [type]: file
+        };
+        console.log("DEBUG - Updated selectedDocs:", updated);
+        return updated;
+      });
+      
+      // Clear selected document to prevent re-applying
+      clearSelectedDoc();
+    }
+  }, [selectedDoc]);
 
   // Mock vault data for demo
   const mockVaultFiles = [
@@ -242,6 +259,7 @@ const TemplateBuilder = memo(({ mode = 'create', initialData, onSave }: Template
     navigate('/select-from-vault', { state: { type: section } });
   }, [navigate]);
 
+  
   const handleRemoveDocument = useCallback((section: string, documentId: string) => {
     setPortfolioData(prev => ({
       ...prev,
@@ -252,15 +270,93 @@ const TemplateBuilder = memo(({ mode = 'create', initialData, onSave }: Template
     }));
   }, []);
 
+  // Helper function to get document details from vault
+  const getDocumentItem = useCallback((docId: unknown): DocumentItem | null => {
+    if (!docId) return null;
+    const docIdStr = String(docId);
+    try {
+      const vaultFiles = JSON.parse(localStorage.getItem('vaultFiles') || '[]');
+      const doc = vaultFiles.find((d: any) => d.id === docIdStr || d === docIdStr);
+      if (doc) {
+        // If doc is already a DocumentItem object
+        if (typeof doc === 'object' && doc.documentId && doc.name) {
+          return doc;
+        }
+        // If doc is a vault file object with id and name
+        if (typeof doc === 'object' && doc.id && doc.name) {
+          return { documentId: doc.id, name: doc.name };
+        }
+        // If doc is just an ID string, try to find it again
+        if (typeof doc === 'string') {
+          const foundDoc = vaultFiles.find((d: any) => d.id === doc);
+          if (foundDoc) {
+            return { documentId: foundDoc.id, name: foundDoc.name };
+          }
+        }
+      }
+      return null;
+    } catch (error) {
+      console.error('Error getting document item:', error);
+      return null;
+    }
+  }, []);
+
   const handleReviewSubmit = useCallback(() => {
+    // Transform selectedDocs into the correct documents structure
+    const transformedDocuments = {
+      personalProofs: Object.entries(selectedDocs)
+        .filter(([key]) => ['aadhaar', 'passport', 'photo'].includes(key))
+        .map(([_, value]) => getDocumentItem(value))
+        .filter((item): item is DocumentItem => item !== null),
+      academic: Object.entries(selectedDocs)
+        .filter(([key]) => ['10th_certificate', '12th_certificate', 'degree_certificate', 'semester_scorecards'].includes(key))
+        .map(([_, value]) => getDocumentItem(value))
+        .filter((item): item is DocumentItem => item !== null),
+      internships: Object.entries(selectedDocs)
+        .filter(([key]) => ['offer_letter', 'completion_certificate'].includes(key))
+        .map(([_, value]) => getDocumentItem(value))
+        .filter((item): item is DocumentItem => item !== null),
+      certifications: Object.entries(selectedDocs)
+        .filter(([key]) => ['courses', 'workshops'].includes(key))
+        .map(([_, value]) => getDocumentItem(value))
+        .filter((item): item is DocumentItem => item !== null),
+      exams: Object.entries(selectedDocs)
+        .filter(([key]) => ['hackathons'].includes(key))
+        .map(([_, value]) => getDocumentItem(value))
+        .filter((item): item is DocumentItem => item !== null),
+      others: Object.entries(selectedDocs)
+        .filter(([key]) => !['resume', 'aadhaar', 'passport', 'photo', '10th_certificate', '12th_certificate', 'degree_certificate', 'semester_scorecards', 'offer_letter', 'completion_certificate', 'courses', 'workshops', 'hackathons'].includes(key))
+        .map(([_, value]) => getDocumentItem(value))
+        .filter((item): item is DocumentItem => item !== null)
+    };
+
+    // Include selectedDocs in final data
+    const finalData = {
+      ...portfolioData,
+      documents: transformedDocuments
+    };
+
+    console.log("FINAL DATA:", finalData); // Debug logging
+
     if (mode === 'edit' && onSave) {
       // In edit mode, call the onSave function directly
-      onSave(portfolioData);
+      onSave(finalData);
     } else {
-      // In create mode, navigate to review page
-      navigate('/portfolio/review', { state: { portfolioData } });
+      // In create mode, navigate to review page with complete data
+      navigate('/portfolio/review', { 
+        state: { 
+          personalInfo: portfolioData.profile,
+          documents: transformedDocuments
+        } 
+      });
     }
-  }, [mode, onSave, portfolioData, navigate]);
+    
+    // Clear localStorage after successful submission
+    if (mode === 'create') {
+      localStorage.removeItem("portfolioBuilderData");
+      console.log("Cleared localStorage after submission");
+    }
+  }, [mode, onSave, portfolioData, selectedDocs, navigate]);
 
   const hasSelectedDocuments = useCallback(() => {
     const selectedDocs = portfolioData.documents;
@@ -293,7 +389,7 @@ const TemplateBuilder = memo(({ mode = 'create', initialData, onSave }: Template
             // Internships
             'Offer Letter': 'offer_letter',
             'Completion Certificate': 'completion_certificate',
-            'Work Proof': 'completion_certificate',
+            'Work Proof': 'work_proof',
             // Certifications
             'Courses': 'courses',
             'Workshops': 'workshops',
@@ -304,15 +400,14 @@ const TemplateBuilder = memo(({ mode = 'create', initialData, onSave }: Template
           
           const fieldName = itemToFieldMap[item] || item.toLowerCase().replace(/\s+/g, '_');
           const selectedDoc = selectedDocs[fieldName];
-          const uploadedDoc = portfolioData.documents[sectionKey].find(doc => doc.name === selectedDoc?.name);
           
           return (
             <DocumentItem
               key={`${sectionKey}-${item}`}
               title={item}
-              value={selectedDoc?.name || uploadedDoc?.name}
-              uploaded={!!selectedDoc || !!uploadedDoc}
-              onSelect={() => handleDocumentSelect(sectionKey)}
+              value={selectedDoc?.name || ''}
+              uploaded={!!selectedDoc}
+              onSelect={() => handleDocumentSelect(fieldName)}
             />
           );
         })}
