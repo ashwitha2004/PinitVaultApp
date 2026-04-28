@@ -119,30 +119,32 @@ function App() {
         <div className="mobile-root">
           <div className="app-container">
             <div className="page">
-              <Routes>
-                <Route path="/" element={<Dashboard uploadedFiles={uploadedFiles} onFileUpload={handleFileUpload} isUploading={isUploading} />} />
-                <Route path="/vault" element={<Vault />} />
-                <Route path="/vault/view/:id" element={<VaultFileViewer />} />
-                <Route path="/portfolio" element={<PortfolioHome />} />
-                <Route path="/portfolio/create" element={<SelectPortfolioType />} />
-                <Route path="/portfolio/create/template" element={<TemplateBuilder />} />
-                <Route path="/portfolio/choose-template" element={<ChoosePortfolioTemplatePage />} />
-                <Route path="/portfolio/templates" element={<ChoosePortfolioTemplatePage />} />
-                <Route path="/portfolio/preview" element={<PortfolioFlowPreviewPage />} />
-                <Route path="/portfolio/view/:id" element={<PortfolioViewPage />} />
-                <Route path="/portfolio/edit/:id" element={<EditPortfolioPage />} />
-                <Route path="/portfolio/review" element={<ReviewPortfolio />} />
-                <Route path="/portfolio/share/:id" element={<PortfolioShare />} />
-                <Route path="/choose-portfolio-type" element={<ChoosePortfolioType />} />
-                <Route path="/choose-template" element={<ChooseTemplate />} />
-                <Route path="/add-documents-from-vault" element={<AddDocumentsFromVault />} />
-                <Route path="/portfolio-creation-draft" element={<PortfolioCreationDraft />} />
-                <Route path="/activity" element={<Activity />} />
-                <Route path="/profile" element={<Profile />} />
-                <Route path="/portfolio-preview" element={<PortfolioPreview />} />
-                <Route path="/p/:id" element={<PublicPortfolio />} />
-                <Route path="/select-from-vault" element={<SelectFromVault />} />
-              </Routes>
+              <div className="page-content">
+                <Routes>
+                  <Route path="/" element={<Dashboard uploadedFiles={uploadedFiles} onFileUpload={handleFileUpload} isUploading={isUploading} />} />
+                  <Route path="/vault" element={<Vault />} />
+                  <Route path="/vault/view/:id" element={<VaultFileViewer />} />
+                  <Route path="/portfolio" element={<PortfolioHome />} />
+                  <Route path="/portfolio/create" element={<SelectPortfolioType />} />
+                  <Route path="/portfolio/create/template" element={<TemplateBuilder />} />
+                  <Route path="/portfolio/choose-template" element={<ChoosePortfolioTemplatePage />} />
+                  <Route path="/portfolio/templates" element={<ChoosePortfolioTemplatePage />} />
+                  <Route path="/portfolio/preview" element={<PortfolioFlowPreviewPage />} />
+                  <Route path="/portfolio/view/:id" element={<PortfolioViewPage />} />
+                  <Route path="/portfolio/edit/:id" element={<EditPortfolioPage />} />
+                  <Route path="/portfolio/review" element={<ReviewPortfolio />} />
+                  <Route path="/portfolio/share/:id" element={<PortfolioShare />} />
+                  <Route path="/choose-portfolio-type" element={<ChoosePortfolioType />} />
+                  <Route path="/choose-template" element={<ChooseTemplate />} />
+                  <Route path="/add-documents-from-vault" element={<AddDocumentsFromVault />} />
+                  <Route path="/portfolio-creation-draft" element={<PortfolioCreationDraft />} />
+                  <Route path="/activity" element={<Activity />} />
+                  <Route path="/profile" element={<Profile />} />
+                  <Route path="/portfolio-preview" element={<PortfolioPreview />} />
+                  <Route path="/p/:id" element={<PublicPortfolio />} />
+                  <Route path="/select-from-vault" element={<SelectFromVault />} />
+                </Routes>
+              </div>
             </div>
             <BottomNav />
           </div>

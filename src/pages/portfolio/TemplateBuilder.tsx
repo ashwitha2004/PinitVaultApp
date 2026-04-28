@@ -215,15 +215,37 @@ const TemplateBuilder = memo(({ mode = 'create', initialData, onSave }: Template
         }
       }));
       
-      // Update selectedDocs state - CRITICAL FIX: Use the original type as key
-      setSelectedDocs(prev => {
-        const updated = {
-          ...prev,
-          [type]: file
+      // Update selectedDocs state - Include base64 URL for view/download
+      if (file instanceof File) {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const base64 = reader.result;
+          
+          setSelectedDocs(prev => {
+            const updated = {
+              ...prev,
+              [type]: {
+                name: file.name,
+                url: base64,
+                id: (file as any).id
+              }
+            };
+            console.log("DEBUG - Updated selectedDocs with URL:", updated);
+            return updated;
+          });
         };
-        console.log("DEBUG - Updated selectedDocs:", updated);
-        return updated;
-      });
+        reader.readAsDataURL(file);
+      } else {
+        // Already processed (from state / localStorage)
+        setSelectedDocs(prev => {
+          const updated = {
+            ...prev,
+            [type]: file
+          };
+          console.log("DEBUG - Using existing processed file:", updated);
+          return updated;
+        });
+      }
       
       // Clear selected document to prevent re-applying
       clearSelectedDoc();
@@ -301,6 +323,34 @@ const TemplateBuilder = memo(({ mode = 'create', initialData, onSave }: Template
     }
   }, []);
 
+  // Helper function to transform selectedDocs to sections structure
+  const buildSections = (selectedDocs: any) => {
+    const sections = [];
+
+    const mapping = {
+      personalProofs: ["resume", "aadhaar", "aadhar", "passport", "photo"],
+      academic: ["10th_certificate", "12th_certificate", "degree_certificate", "semester_scorecards"],
+      internships: ["offer_letter", "completion_certificate", "work_proof"],
+      certifications: ["courses", "workshops", "hackathons"],
+      other: ["other"]
+    };
+
+    Object.keys(mapping).forEach((sectionKey) => {
+      const docs = mapping[sectionKey as keyof typeof mapping]
+        .map((key) => selectedDocs[key])
+        .filter(Boolean); // remove empty
+
+      if (docs.length > 0) {
+        sections.push({
+          title: sectionKey,
+          documents: docs
+        });
+      }
+    });
+
+    return sections;
+  };
+
   const handleReviewSubmit = useCallback(() => {
     // Transform selectedDocs into the correct documents structure
     const transformedDocuments = {
@@ -330,13 +380,18 @@ const TemplateBuilder = memo(({ mode = 'create', initialData, onSave }: Template
         .filter((item): item is DocumentItem => item !== null)
     };
 
-    // Include selectedDocs in final data
+    // Build sections for share/view compatibility
+    const sections = buildSections(selectedDocs);
+
+    // Include both documents and sections for compatibility
     const finalData = {
       ...portfolioData,
-      documents: transformedDocuments
+      documents: transformedDocuments,
+      sections: sections, // ✅ IMPORTANT: Add sections structure
+      selectedDocs: selectedDocs // Keep for backward compatibility
     };
 
-    console.log("FINAL DATA:", finalData); // Debug logging
+    console.log("FINAL SAVED DATA:", finalData); // Debug logging
 
     if (mode === 'edit' && onSave) {
       // In edit mode, call the onSave function directly
@@ -418,45 +473,40 @@ const TemplateBuilder = memo(({ mode = 'create', initialData, onSave }: Template
   // Error boundary fallback
   if (!portfolioData || !portfolioData.documents) {
     return (
-      <div className="page">
-        <div className="page-content">
-          <div className="flex flex-col items-center justify-center py-16">
-            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
-              <span className="text-2xl">⚠️</span>
-            </div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">Loading Portfolio</h3>
-            <p className="text-gray-600 mb-6">Please wait while we set up your portfolio...</p>
-            <button
-              onClick={() => window.location.reload()}
-              className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-            >
-              Refresh
-            </button>
-          </div>
+      <div className="flex flex-col items-center justify-center py-16">
+        <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+          <span className="text-2xl">⚠️</span>
         </div>
+        <h3 className="text-lg font-semibold text-gray-900 mb-2">Error</h3>
+        <p className="text-gray-600 mb-6">Unable to load portfolio data</p>
+        <button
+          onClick={() => navigate('/portfolio/create')}
+          className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+        >
+          Start Over
+        </button>
       </div>
     );
   }
 
   return (
-    <div className="page">
-      <div className="page-content">
-        {/* Header */}
-        <div className="bg-white border-b border-gray-200 mb-4">
-          <div className="px-4 py-4">
-            <div className="flex items-center gap-3">
-              <button
-                onClick={handleBack}
-                className="p-2 hover:bg-gray-100 rounded-full transition-colors"
-              >
-                <ArrowLeft className="w-5 h-5 text-gray-600" />
-              </button>
-              <h1 className="text-xl font-bold text-gray-900">
-                {type === 'masters' ? 'Masters' : type === 'personal' ? 'Personal' : 'Academic'} Portfolio
-              </h1>
-            </div>
+    <>
+      {/* Header */}
+      <div className="bg-white border-b border-gray-200 mb-4">
+        <div className="px-4 py-4">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={handleBack}
+              className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+            >
+              <ArrowLeft className="w-5 h-5 text-gray-600" />
+            </button>
+            <h1 className="text-xl font-bold text-gray-900">
+              {mode === 'edit' ? 'Edit Portfolio' : 'Create Portfolio'}
+            </h1>
           </div>
         </div>
+      </div>
 
         {/* Content */}
         <div>
@@ -515,8 +565,7 @@ const TemplateBuilder = memo(({ mode = 'create', initialData, onSave }: Template
             )}
           </div>
         </div>
-      </div>
-    </div>
+      </>
   );
 });
 

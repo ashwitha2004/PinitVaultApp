@@ -168,7 +168,60 @@ const PortfolioViewPage = () => {
         {/* Documents */}
         <div className="bg-white rounded-xl shadow-sm p-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">Documents</h2>
-          {portfolio.selectedDocuments && Object.keys(portfolio.selectedDocuments).length > 0 ? (
+          {portfolio.sections && portfolio.sections.length > 0 ? (
+            <div className="space-y-6">
+              {portfolio.sections.map((section: any, sectionIndex: number) => (
+                <div key={sectionIndex} className="border border-gray-200 rounded-lg p-4">
+                  <h3 className="font-medium text-gray-900 mb-3 capitalize">
+                    {section.title.replace(/([A-Z])/g, ' $1').trim()}
+                  </h3>
+                  
+                  {section.documents && section.documents.length > 0 ? (
+                    <div className="space-y-2">
+                      {section.documents.map((doc: any, docIndex: number) => (
+                        <div key={docIndex} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                          <div>
+                            <p className="font-medium text-gray-900">{doc.name}</p>
+                            <p className="text-sm text-gray-600">{doc.type || 'Document'}</p>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <button 
+                              onClick={() => {
+                                if (doc.url) {
+                                  window.open(doc.url, '_blank');
+                                }
+                              }}
+                              className="p-2 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                              title="View document"
+                            >
+                              <Eye className="w-4 h-4 text-gray-700" />
+                            </button>
+                            <button 
+                              onClick={() => {
+                                if (doc.url) {
+                                  const link = document.createElement('a');
+                                  link.href = doc.url;
+                                  link.download = doc.name;
+                                  link.click();
+                                }
+                              }}
+                              className="p-2 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                              title="Download document"
+                            >
+                              <Download className="w-4 h-4 text-gray-700" />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-gray-500 italic">No documents in this section</p>
+                  )}
+                </div>
+              ))}
+            </div>
+          ) : portfolio.selectedDocuments && Object.keys(portfolio.selectedDocuments).length > 0 ? (
+            // Fallback to old format for backward compatibility
             <div className="space-y-4">
               {Object.entries(portfolio.selectedDocuments).map(([field, doc]: [string, any]) => (
                 <div key={field} className="border border-gray-200 rounded-lg p-4">

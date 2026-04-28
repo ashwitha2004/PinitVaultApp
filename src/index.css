@@ -8,19 +8,17 @@
   height: 100vh;
   display: flex;
   justify-content: center;
-  overflow: hidden; /* Prevent body scroll */
 }
 
 /* Main mobile screen */
 .app-container {
   width: 100%;
   max-width: 430px; /* Pixel width */
-  min-height: 100vh; /* Allow content to expand */
+  height: 100vh; /* Full viewport height */
   background: #fff;
   position: relative;
   display: flex;
   flex-direction: column;
-  overflow: visible; /* Allow scrolling */
 }
 
 /* Bottom Navigation */
@@ -41,7 +39,7 @@
   flex: 1;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  min-height: 0; /* Allow flex child to shrink */
 }
 
 .page-content {

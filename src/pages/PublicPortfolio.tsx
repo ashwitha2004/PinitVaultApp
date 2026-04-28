@@ -134,24 +134,31 @@ const PublicPortfolio = () => {
                   
                   {section.documents && section.documents.length > 0 ? (
                     <div className="space-y-2">
-                      {section.documents.map((docId: string, docIndex: number) => {
-                        const doc = JSON.parse(localStorage.getItem('vaultFiles') || '[]')
-                          .find((d: any) => d.id === docId);
+                      {section.documents.map((doc: any, docIndex: number) => {
+                        // Handle both old format (docId string) and new format (doc object)
+                        const docObj = typeof doc === 'string' 
+                          ? JSON.parse(localStorage.getItem('vaultFiles') || '[]')
+                              .find((d: any) => d.id === doc)
+                          : doc;
                         
-                        return doc ? (
+                        return docObj ? (
                           <div key={docIndex} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                             <div>
-                              <p className="font-medium text-gray-900">{doc.name}</p>
-                              <p className="text-sm text-gray-600">{doc.type}</p>
+                              <p className="font-medium text-gray-900">{docObj.name}</p>
+                              <p className="text-sm text-gray-600">{docObj.type || 'Document'}</p>
                             </div>
                             
                             {!config.viewOnly && config.allowDownload && (
                               <button
                                 onClick={() => {
-                                  const link = document.createElement('a');
-                                  link.href = doc.data;
-                                  link.download = doc.name;
-                                  link.click();
+                                  // Handle both base64 URL and file data
+                                  const downloadUrl = docObj.url || docObj.data;
+                                  if (downloadUrl) {
+                                    const link = document.createElement('a');
+                                    link.href = downloadUrl;
+                                    link.download = docObj.name;
+                                    link.click();
+                                  }
                                 }}
                                 className="px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700"
                               >
