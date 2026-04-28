@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { FileText, MoreHorizontal, Eye, Share2, Edit, Trash2, Image, Video, Search } from 'lucide-react';
 import Header from "../components/Header";
 
@@ -12,6 +13,7 @@ interface VaultFile {
 }
 
 const Vault = () => {
+  const navigate = useNavigate();
   const [files, setFiles] = useState<VaultFile[]>([]);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -112,6 +114,11 @@ const Vault = () => {
     setOpenMenuId(null);
   };
 
+  const handleView = (id: string) => {
+    navigate(`/vault/view/${id}`);
+    setOpenMenuId(null);
+  };
+
   const handleShare = (file: VaultFile) => {
     navigator.clipboard.writeText(file.data);
     alert("File link copied");
@@ -141,10 +148,10 @@ const Vault = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="page">
       <Header showWelcome={false} />
 
-      <div className="max-w-md mx-auto px-4 py-6">
+      <div className="page-content">
         {/* Header */}
         <div className="flex items-center mb-6">
           <h1 className="text-2xl font-bold text-gray-900">Vault</h1>
@@ -211,6 +218,13 @@ const Vault = () => {
                   {/* MENU */}
                   {openMenuId === file.id && (
                     <div className="absolute right-2 top-10 bg-white shadow-lg rounded-lg p-2 z-50 min-w-[120px]">
+                      <button
+                        onClick={() => handleView(file.id)}
+                        className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded flex items-center gap-2"
+                      >
+                        <Eye className="w-4 h-4" />
+                        View
+                      </button>
                       <button
                         onClick={() => handleRename(file.id)}
                         className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded flex items-center gap-2"

@@ -1,119 +1,206 @@
-import { useMemo, useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, X } from "lucide-react";
-import { PORTFOLIOS_STORAGE_KEY, type PortfolioItem, type VaultFileRecord, readJsonArray } from "../utils/portfolioFlow";
+import { ArrowLeft, FileText, User, Calendar, Download, Eye } from "lucide-react";
 
 const PortfolioViewPage = () => {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
-  const [previewDoc, setPreviewDoc] = useState<VaultFileRecord | null>(null);
+  const [portfolio, setPortfolio] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
 
-  const portfolios = readJsonArray<PortfolioItem>(PORTFOLIOS_STORAGE_KEY);
-  const portfolio = portfolios.find((item) => item.id === id);
-  const vaultFiles = readJsonArray<VaultFileRecord>("vaultFiles");
+  useEffect(() => {
+    console.log("=== PORTFOLIO VIEW DEBUG START ===");
+    console.log("VIEW ID from URL:", id);
+    console.log("VIEW ID type:", typeof id);
+    
+    if (!id) {
+      console.log("ERROR: No ID found in URL params");
+      setLoading(false);
+      return;
+    }
+    
+    // Fetch portfolio from localStorage
+    const rawData = localStorage.getItem("portfolios");
+    console.log("Raw localStorage data:", rawData);
+    
+    if (!rawData) {
+      console.log("ERROR: No portfolios found in localStorage");
+      setLoading(false);
+      return;
+    }
+    
+    const data = JSON.parse(rawData);
+    console.log("Parsed portfolios array:", data);
+    console.log("Number of portfolios:", data.length);
+    
+    // Log each portfolio ID for debugging
+    data.forEach((p: any, index: number) => {
+      console.log(`Portfolio ${index}: ID=${p.id}, Type=${typeof p.id}, Name=${p.name}`);
+    });
+    
+    const found = data.find((p: any) => String(p.id) === String(id));
+    console.log("FOUND portfolio:", found);
+    console.log("Comparison used: String(p.id) === String(id)");
+    console.log("=== PORTFOLIO VIEW DEBUG END ===");
+    
+    setPortfolio(found);
+    setLoading(false);
+  }, [id]);
 
-  const selectedDocs = useMemo(() => {
-    if (!portfolio) return [];
-    const selectedIds = Array.isArray(portfolio.selectedDocumentIds) ? portfolio.selectedDocumentIds : [];
-    return vaultFiles.filter((doc) => selectedIds.includes(doc.id));
-  }, [portfolio, vaultFiles]);
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-200"></div>
+          <p className="mt-4 text-gray-600">Loading portfolio...</p>
+        </div>
+      </div>
+    );
+  }
 
-  const templateMode = useMemo(() => {
-    const rawTemplate = (portfolio?.template || "").toLowerCase();
-    if (rawTemplate.includes("card")) return "card";
-    return "clean";
-  }, [portfolio?.template]);
+  if (!portfolio) {
+    return (
+      <div className="page">
+        <div className="page-content">
+          <div className="flex items-center justify-center h-full">
+            <div className="text-center">
+              <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <FileText className="w-8 h-8 text-gray-400" />
+              </div>
+              <h2 className="text-xl font-semibold text-gray-900 mb-2">Portfolio not found</h2>
+              <p className="text-gray-600 mb-4">The portfolio you're looking for doesn't exist.</p>
+              <button
+                onClick={() => navigate("/portfolio")}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                Back to Portfolios
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="relative h-full min-h-0 overflow-hidden bg-gradient-to-b from-[#0b1220] via-[#111827] to-[#030712] text-white -mx-4 -mt-4 flex flex-col">
-      <div className="px-4 pt-5 pb-4 border-b border-white/10 shrink-0">
-        <div className="flex items-center gap-3">
-          <button onClick={() => navigate("/portfolio")} className="p-2 rounded-lg bg-white/10">
-            <ArrowLeft className="w-4 h-4" />
-          </button>
-          <h1 className="text-lg font-semibold">{portfolio?.title || "Portfolio View"}</h1>
+    <div className="page">
+      {/* Header */}
+      <div className="bg-white border-b border-gray-200">
+        <div className="max-w-4xl mx-auto px-4 py-4">
+          <div className="flex items-center justify-between">
+            <button
+              onClick={() => navigate("/portfolio")}
+              className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors"
+            >
+              <ArrowLeft className="w-5 h-5" />
+              Back to Portfolios
+            </button>
+            <h1 className="text-xl font-bold text-gray-900">{portfolio.name}</h1>
+            <div className="w-20"></div>
+          </div>
         </div>
       </div>
 
-      <div className="flex-1 min-h-0 overflow-y-auto px-4 py-4">
-        {!portfolio ? (
-          <div className="rounded-2xl border border-white/10 bg-white/10 p-6 text-center text-white/80">
-            Portfolio not found.
-          </div>
-        ) : selectedDocs.length === 0 ? (
-          <div className="rounded-2xl border border-white/10 bg-white/10 p-6 text-center text-white/80">
-            No documents available in this portfolio.
-          </div>
-        ) : templateMode === "card" ? (
-          <div className="grid grid-cols-2 gap-3">
-            {selectedDocs.map((doc) => (
-              <button
-                key={doc.id}
-                onClick={() => setPreviewDoc(doc)}
-                className="rounded-2xl border border-white/10 bg-white/10 p-3 text-left"
-              >
-                <div className="h-24 rounded-lg overflow-hidden border border-white/10 flex items-center justify-center bg-black/20 mb-2">
-                  {doc.type.includes("image") ? (
-                    <img src={doc.data} alt={doc.name} className="w-full h-full object-cover" />
-                  ) : (
-                    <span className="text-xs text-white/70 uppercase">PDF</span>
-                  )}
-                </div>
-                <p className="text-sm font-medium truncate">{doc.name}</p>
-                <p className="text-xs text-white/60">
-                  {doc.type.includes("image") ? "Image" : "PDF"} · {new Date(doc.uploadedAt).toLocaleDateString()}
-                </p>
-              </button>
-            ))}
-          </div>
-        ) : (
-          <div className="space-y-2">
-            {selectedDocs.map((doc) => (
-              <button
-                key={doc.id}
-                onClick={() => setPreviewDoc(doc)}
-                className="w-full rounded-xl bg-white/10 border border-white/10 p-3 text-left"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="h-12 w-12 rounded-lg overflow-hidden border border-white/10 flex items-center justify-center bg-black/20">
-                    {doc.type.includes("image") ? (
-                      <img src={doc.data} alt={doc.name} className="w-full h-full object-cover" />
-                    ) : (
-                      <span className="text-xs text-white/70 uppercase">PDF</span>
-                    )}
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium truncate">{doc.name}</p>
-                    <p className="text-xs text-white/60">
-                      {doc.type.includes("image") ? "Image" : "PDF"} · {new Date(doc.uploadedAt).toLocaleDateString()}
-                    </p>
-                  </div>
-                </div>
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {previewDoc && (
-        <div className="absolute inset-0 z-20 bg-black/70 flex items-center justify-center p-4">
-          <div className="w-full rounded-2xl border border-white/20 bg-[#0b1220] p-4">
-            <div className="flex items-center justify-between mb-3">
-              <p className="font-semibold truncate">{previewDoc.name}</p>
-              <button onClick={() => setPreviewDoc(null)} className="p-1 rounded bg-white/10">
-                <X className="w-4 h-4" />
-              </button>
+      {/* Content */}
+      <div className="page-content">
+        {/* Portfolio Info */}
+        <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div>
+              <div className="flex items-center gap-2 text-gray-600 mb-2">
+                <User className="w-4 h-4" />
+                <span className="text-sm">Type</span>
+              </div>
+              <p className="font-semibold text-gray-900">{portfolio.type}</p>
             </div>
-            <div className="h-64 rounded-xl overflow-hidden border border-white/10 bg-black/20 flex items-center justify-center">
-              {previewDoc.type.includes("image") ? (
-                <img src={previewDoc.data} alt={previewDoc.name} className="w-full h-full object-contain" />
-              ) : (
-                <iframe src={previewDoc.data} title={previewDoc.name} className="w-full h-full border-0" />
+            <div>
+              <div className="flex items-center gap-2 text-gray-600 mb-2">
+                <Calendar className="w-4 h-4" />
+                <span className="text-sm">Created</span>
+              </div>
+              <p className="font-semibold text-gray-900">
+                {portfolio.createdAt ? new Date(portfolio.createdAt).toLocaleDateString() : 'Unknown'}
+              </p>
+            </div>
+            <div>
+              <div className="flex items-center gap-2 text-gray-600 mb-2">
+                <FileText className="w-4 h-4" />
+                <span className="text-sm">Status</span>
+              </div>
+              <p className="font-semibold text-gray-900">{portfolio.status || 'Active'}</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Profile Information */}
+        {portfolio.profile && (
+          <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">Profile Information</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {portfolio.profile.fullName && (
+                <div>
+                  <span className="text-sm text-gray-600">Full Name</span>
+                  <p className="font-medium text-gray-900">{portfolio.profile.fullName}</p>
+                </div>
+              )}
+              {portfolio.profile.email && (
+                <div>
+                  <span className="text-sm text-gray-600">Email</span>
+                  <p className="font-medium text-gray-900">{portfolio.profile.email}</p>
+                </div>
+              )}
+              {portfolio.profile.phone && (
+                <div>
+                  <span className="text-sm text-gray-600">Phone</span>
+                  <p className="font-medium text-gray-900">{portfolio.profile.phone}</p>
+                </div>
+              )}
+              {portfolio.profile.role && (
+                <div>
+                  <span className="text-sm text-gray-600">Role</span>
+                  <p className="font-medium text-gray-900">{portfolio.profile.role}</p>
+                </div>
               )}
             </div>
           </div>
+        )}
+
+        {/* Documents */}
+        <div className="bg-white rounded-xl shadow-sm p-6">
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">Documents</h2>
+          {portfolio.selectedDocuments && Object.keys(portfolio.selectedDocuments).length > 0 ? (
+            <div className="space-y-4">
+              {Object.entries(portfolio.selectedDocuments).map(([field, doc]: [string, any]) => (
+                <div key={field} className="border border-gray-200 rounded-lg p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="font-medium text-gray-900 capitalize">{field}</h3>
+                      <p className="text-sm text-gray-600">{doc.name}</p>
+                      <p className="text-xs text-gray-500">{doc.type}</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button className="p-2 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors">
+                        <Eye className="w-4 h-4 text-gray-700" />
+                      </button>
+                      <button className="p-2 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors">
+                        <Download className="w-4 h-4 text-gray-700" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-8">
+              <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <FileText className="w-8 h-8 text-gray-400" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">No documents</h3>
+              <p className="text-gray-600">This portfolio doesn't have any documents yet.</p>
+            </div>
+          )}
         </div>
-      )}
+      </div>
     </div>
   );
 };

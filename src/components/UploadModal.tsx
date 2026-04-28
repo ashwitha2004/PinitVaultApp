@@ -12,16 +12,56 @@ const UploadModal = ({ isOpen, onClose, onFileUpload }: Props) => {
 
   if (!isOpen) return null;
 
+  // Relaxed PDF validation function
+  const isValidPDFFile = (file: File): boolean => {
+    console.log("=== PDF VALIDATION DEBUG ===");
+    console.log("Checking file:", file.name, "type:", file.type);
+    
+    // Accept multiple PDF MIME types
+    const validPdfMimeTypes = [
+      'application/pdf',
+      'application/wps-pdf',
+      'application/x-pdf',
+      'application/acrobat',
+      'applications/vnd.pdf',
+      'text/pdf',
+      'text/x-pdf'
+    ];
+    
+    // Check MIME type first
+    if (validPdfMimeTypes.includes(file.type)) {
+      console.log("✅ Valid PDF MIME type:", file.type);
+      return true;
+    }
+    
+    // Fallback to extension-based validation
+    const fileName = file.name.toLowerCase();
+    if (fileName.endsWith('.pdf')) {
+      console.log("✅ Valid PDF extension:", file.name);
+      return true;
+    }
+    
+    console.log("❌ Invalid PDF file:", file.name, "type:", file.type);
+    return false;
+  };
+
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>, fileType: string) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    console.log("Uploaded file:", file);
+    console.log("=== FILE UPLOAD DEBUG ===");
+    console.log("File name:", file.name);
+    console.log("File type:", file.type);
+    console.log("File size:", file.size);
+    console.log("Requested fileType:", fileType);
     
-    // Validate file type
-    if (fileType === 'pdf' && file.type !== 'application/pdf') {
-      alert('Please select a valid PDF file');
-      return;
+    // Validate file type with relaxed logic
+    if (fileType === 'pdf') {
+      const isValidPdf = isValidPDFFile(file);
+      if (!isValidPdf) {
+        alert('Please select a valid PDF file');
+        return;
+      }
     }
     
     if (fileType === 'image' && !file.type.startsWith('image/')) {
@@ -45,11 +85,11 @@ const UploadModal = ({ isOpen, onClose, onFileUpload }: Props) => {
     input.style.display = 'none';
     
     if (fileType === 'pdf') {
-      input.accept = '.pdf,application/pdf';
+      input.accept = '.pdf,application/pdf,application/wps-pdf,application/x-pdf,text/pdf';
     } else if (fileType === 'image') {
       input.accept = 'image/*';
     } else {
-      input.accept = 'image/*,.pdf';
+      input.accept = 'image/*,.pdf,application/pdf,application/wps-pdf';
     }
     
     input.onchange = (e) => handleFileUpload(e as any, fileType);

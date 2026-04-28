@@ -1,8 +1,12 @@
 import { useState, useEffect } from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 
+import { MobileShell } from "./components/MobileShell";
 import Dashboard from "./pages/Dashboard";
 import Vault from "./pages/Vault";
+import PortfolioHome from "./pages/portfolio/PortfolioHome";
+import SelectPortfolioType from "./pages/portfolio/SelectPortfolioType";
+import TemplateBuilder from "./pages/portfolio/TemplateBuilder";
 import PortfolioPage from "./pages/PortfolioPage";
 import CreatePortfolioPage from "./pages/CreatePortfolioPage";
 import SelectDocumentsPage from "./pages/SelectDocumentsPage";
@@ -18,6 +22,10 @@ import PortfolioShare from "./pages/PortfolioShare";
 import PublicPortfolio from "./pages/PublicPortfolio";
 import Activity from "./pages/Activity";
 import Profile from "./pages/Profile";
+import SelectFromVault from "./pages/SelectFromVault";
+import ReviewPortfolio from './pages/portfolio/ReviewPortfolio';
+import EditPortfolioPage from './pages/portfolio/EditPortfolioPage';
+import VaultFileViewer from './pages/VaultFileViewer';
 
 import BottomNav from "./components/BottomNav";
 import type { UploadedFile } from "./types";
@@ -108,32 +116,32 @@ function App() {
   };
   return (
     <BrowserRouter>
-      <div className="h-screen overflow-hidden flex items-center justify-center bg-black">
-        <div className="relative max-w-sm w-full h-[90vh] rounded-3xl overflow-hidden shadow-2xl bg-gradient-to-b from-[#0f172a] to-[#1e3a8a]">
-          <div className="h-full overflow-y-auto px-4 pt-4 pb-24">
-            <Routes>
-              <Route path="/" element={<Dashboard uploadedFiles={uploadedFiles} onFileUpload={handleFileUpload} isUploading={isUploading} />} />
-              <Route path="/vault" element={<Vault />} />
-              <Route path="/portfolio" element={<PortfolioPage />} />
-              <Route path="/portfolio/create" element={<CreatePortfolioPage />} />
-              <Route path="/portfolio/select-documents" element={<SelectDocumentsPage />} />
-              <Route path="/portfolio/choose-template" element={<ChoosePortfolioTemplatePage />} />
-              <Route path="/portfolio/templates" element={<ChoosePortfolioTemplatePage />} />
-              <Route path="/portfolio/preview" element={<PortfolioFlowPreviewPage />} />
-              <Route path="/portfolio/view/:id" element={<PortfolioViewPage />} />
-              <Route path="/choose-portfolio-type" element={<ChoosePortfolioType />} />
-              <Route path="/choose-template" element={<ChooseTemplate />} />
-              <Route path="/add-documents" element={<AddDocumentsFromVault />} />
-              <Route path="/add-documents-from-vault" element={<AddDocumentsFromVault />} />
-              <Route path="/portfolio-creation-draft" element={<PortfolioCreationDraft />} />
-              <Route path="/portfolio-preview" element={<PortfolioPreview />} />
-              <Route path="/portfolio/share/:id" element={<PortfolioShare />} />
-              <Route path="/p/:id" element={<PublicPortfolio />} />
-              <Route path="/activity" element={<Activity />} />
-              <Route path="/profile" element={<Profile />} />
-            </Routes>
-          </div>
-
+      <div className="mobile-root">
+        <div className="app-container">
+          <Routes>
+            <Route path="/" element={<Dashboard uploadedFiles={uploadedFiles} onFileUpload={handleFileUpload} isUploading={isUploading} />} />
+            <Route path="/vault" element={<Vault />} />
+            <Route path="/vault/view/:id" element={<VaultFileViewer />} />
+            <Route path="/portfolio" element={<PortfolioHome />} />
+            <Route path="/portfolio/create" element={<SelectPortfolioType />} />
+            <Route path="/portfolio/create/template" element={<TemplateBuilder />} />
+            <Route path="/portfolio/choose-template" element={<ChoosePortfolioTemplatePage />} />
+            <Route path="/portfolio/templates" element={<ChoosePortfolioTemplatePage />} />
+            <Route path="/portfolio/preview" element={<PortfolioFlowPreviewPage />} />
+            <Route path="/portfolio/view/:id" element={<PortfolioViewPage />} />
+            <Route path="/portfolio/edit/:id" element={<EditPortfolioPage />} />
+            <Route path="/portfolio/review" element={<ReviewPortfolio />} />
+            <Route path="/portfolio/share/:id" element={<PortfolioShare />} />
+            <Route path="/choose-portfolio-type" element={<ChoosePortfolioType />} />
+            <Route path="/choose-template" element={<ChooseTemplate />} />
+            <Route path="/add-documents-from-vault" element={<AddDocumentsFromVault />} />
+            <Route path="/portfolio-creation-draft" element={<PortfolioCreationDraft />} />
+            <Route path="/activity" element={<Activity />} />
+            <Route path="/profile" element={<Profile />} />
+            <Route path="/portfolio-preview" element={<PortfolioPreview />} />
+            <Route path="/p/:id" element={<PublicPortfolio />} />
+            <Route path="/select-from-vault" element={<SelectFromVault />} />
+          </Routes>
           <BottomNav />
         </div>
       </div>
